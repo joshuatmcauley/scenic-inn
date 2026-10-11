@@ -67,10 +67,12 @@ function niceTime(t) {
 function money(n) { return '£' + n.toFixed(2); }
 
 // ---------- menu availability ----------
-function menuAvailability(id, dateStr) {
+function toMins(t) { var p = t.split(':'); return (+p[0]) * 60 + (+p[1]); }
+function menuAvailability(id, dateStr, time) {
   var m = MENUS[id];
   var d = parseDate(dateStr);
   if (!d) return { ok: true };
+  if (time && m.times && (toMins(time) < toMins(m.times[0]) || toMins(time) > toMins(m.times[1]))) return { ok: false, why: 'Not served at that time' };
   if (m.christmas) {
     var from = parseDate(CHRISTMAS_DATES.from), to = parseDate(CHRISTMAS_DATES.to);
     if (d < from || d > to) return { ok: false, why: 'Only for ' + niceDate(CHRISTMAS_DATES.from) + ' to ' + niceDate(CHRISTMAS_DATES.to) };
@@ -81,8 +83,7 @@ function menuAvailability(id, dateStr) {
 }
 function timeOptions(id) {
   var m = MENUS[id], out = [];
-  var range = isBuffet() ? ['12:00', '20:30'] : (m && m.times);
-  if (!range) return out;
+  var range = ['12:00', '20:30'];
   var a = range[0].split(':'), b = range[1].split(':');
   for (var t = (+a[0]) * 60 + (+a[1]); t <= (+b[0]) * 60 + (+b[1]); t += 30) {
     var hh = Math.floor(t / 60), mm = t % 60;
@@ -122,25 +123,79 @@ function sideList() { return menu().sides || SIDES_EVENING; }
 // =====================================================================
 // STEP 1
 // =====================================================================
+function availableMenus() {
+  if (!state.date || !state.time) return [];
+  return PREORDER_MENUS.filter(function (id) { return menuAvailability(id, state.date, state.time).ok; });
+}
+
 function renderMenuCards() {
   var box = $('menu-cards'); box.innerHTML = '';
-  PREORDER_MENUS.forEach(function (id) {
-    var m = MENUS[id], avail = menuAvailability(id, state.date);
+  var hint = $('menu-hint');
+  if (!state.date || !state.time) { hint.textContent = 'Pick a date and time above and we’ll show the menus served then.'; return; }
+  var ids = availableMenus();
+  if (state.menuId && ids.indexOf(state.menuId) === -1) state.menuId = null;
+  if (!state.menuId && ids.length === 1) state.menuId = ids[0];
+  hint.textContent = ids.length
+    ? (ids.length === 1 ? 'This menu is served on ' : 'These menus are served on ') + niceDate(state.date) + ' at ' + niceTime(state.time) + '.'
+    : 'None of our menus are served at that time. Try an earlier time, or call us on ' + SCENIC_PHONE + '.';
+  ids.forEach(function (id) {
+    var m = MENUS[id];
     var price = m.setPrice
       ? Object.keys(m.setPrice).map(function (k) { return k + (k === '1' ? ' course ' : ' courses ') + formatPrice(m.setPrice[k]); }).join(', ')
       : 'Priced per dish';
     var input = h('input', { type: 'radio', name: 'po-menu', value: id, checked: state.menuId === id });
     input.addEventListener('change', function () { chooseMenu(id); });
-    var card = h('label', { class: 'menu-card' + (avail.ok ? '' : ' unavailable') }, [
+    box.appendChild(h('label', { class: 'menu-card' }, [
       input,
       h('span', { class: 'mc-name', text: m.label }),
-      h('span', { class: 'mc-when', text: m.christmas ? 'Christmas parties and nights out' : m.when }),
+      h('span', { class: 'mc-when', text: m.christmas ? 'Our festive menu' : m.when }),
       h('span', { class: 'mc-price', text: price }),
-      avail.ok ? null : h('span', { class: 'mc-why', text: avail.why + ', so not available on your date' })
-    ]);
-    box.appendChild(card);
+      h('a', { class: 'mc-link', href: 'menus.html#' + id, target: '_blank', rel: 'noopener', text: 'See the full menu' })
+    ]));
   });
+  save();
 }
+
+// ---------- calendar ----------
+var calView = null;
+function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function renderCalendar() {
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var sel = parseDate(state.date);
+  if (!calView) calView = new Date((sel || today).getFullYear(), (sel || today).getMonth(), 1);
+  var box = $('calendar'); box.innerHTML = '';
+  var minMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  var prev = h('button', { type: 'button', class: 'cal-nav', 'aria-label': 'Previous month', text: '‹', disabled: calView <= minMonth,
+    onclick: function () { calView = new Date(calView.getFullYear(), calView.getMonth() - 1, 1); renderCalendar(); } });
+  var next = h('button', { type: 'button', class: 'cal-nav', 'aria-label': 'Next month', text: '›',
+    onclick: function () { calView = new Date(calView.getFullYear(), calView.getMonth() + 1, 1); renderCalendar(); } });
+  box.appendChild(h('div', { class: 'cal-head' }, [prev, h('p', { class: 'cal-title', 'aria-live': 'polite', text: MON[calView.getMonth()] + ' ' + calView.getFullYear() }), next]));
+  var grid = h('div', { class: 'cal-grid', role: 'grid' });
+  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (d) { grid.appendChild(h('span', { class: 'cal-dow', 'aria-hidden': 'true', text: d })); });
+  var first = (calView.getDay() + 6) % 7;
+  for (var i = 0; i < first; i++) grid.appendChild(h('span'));
+  var daysIn = new Date(calView.getFullYear(), calView.getMonth() + 1, 0).getDate();
+  for (var dnum = 1; dnum <= daysIn; dnum++) {
+    (function (date) {
+      var past = date < today, isSel = sel && date.getTime() === sel.getTime();
+      grid.appendChild(h('button', {
+        type: 'button', class: 'cal-day' + (isSel ? ' selected' : '') + (date.getTime() === today.getTime() ? ' today' : ''),
+        disabled: past, 'aria-pressed': isSel ? 'true' : 'false', 'aria-label': DOW[date.getDay()] + ' ' + date.getDate() + ' ' + MON[date.getMonth()],
+        text: String(date.getDate()),
+        onclick: function () { state.date = iso(date); save(); renderCalendar(); afterWhenChange(); }
+      }));
+    })(new Date(calView.getFullYear(), calView.getMonth(), dnum));
+  }
+  box.appendChild(grid);
+  $('chosen-date').textContent = state.date ? niceDate(state.date) : 'No date chosen yet';
+}
+
+function afterWhenChange() { renderMenuCards(); checkMenuMsg(); updateDepositNote(); }
+
+// ---------- deposit ----------
+function depositDue() { return isBuffet() && state.guests.length > BUFFET_DEPOSIT.overGuests ? BUFFET_DEPOSIT.amount : 0; }
+function depositText() { return 'Buffets for more than ' + BUFFET_DEPOSIT.overGuests + ' people need a ' + formatPrice(BUFFET_DEPOSIT.amount) + ' deposit to secure the date. You can pay it after sending your booking.'; }
+function updateDepositNote() { var n = $('deposit-note'); n.hidden = !depositDue(); n.textContent = depositDue() ? depositText() : ''; }
 
 function renderStyleCards() {
   var box = $('style-cards'); box.innerHTML = '';
@@ -149,7 +204,7 @@ function renderStyleCards() {
     { id: 'buffet', name: 'Buffet', when: 'Pick up to ' + BUFFET.maxChoices + ' dishes and we’ll lay them out for the whole group', price: BUFFET.pricePerHead ? formatPrice(BUFFET.pricePerHead) + ' per person' : 'Price confirmed when we call you' }
   ].forEach(function (o) {
     var input = h('input', { type: 'radio', name: 'po-style', value: o.id, checked: state.style === o.id });
-    input.addEventListener('change', function () { state.style = o.id; save(); applyMode(); renderTimes(); });
+    input.addEventListener('change', function () { state.style = o.id; save(); applyMode(); renderMenuCards(); updateDepositNote(); });
     box.appendChild(h('label', { class: 'menu-card' }, [input,
       h('span', { class: 'mc-name', text: o.name }), h('span', { class: 'mc-when', text: o.when }), h('span', { class: 'mc-price', text: o.price })]));
   });
@@ -165,8 +220,8 @@ function applyMode() {
   document.querySelectorAll('[data-nav]').forEach(function (a) { if (a.getAttribute('data-nav') === state.type) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   $('style-block').hidden = ev;
   $('menu-block').hidden = isBuffet() || !state.style;
+  $('style-block').querySelector('h2').classList.add('spaced');
   $('event-type-field').hidden = !ev;
-  $('when-h').classList.toggle('spaced', !ev);
   $('step2-label').textContent = isBuffet() ? 'Buffet' : 'Everyone’s food';
   $('po-guests').min = ev ? 2 : PARTY_MIN;
   if (!ev) renderStyleCards();
@@ -180,30 +235,22 @@ function chooseMenu(id) {
     state.guests.forEach(function (g) { g.starter = g.main = g.side = g.dessert = null; });
   }
   state.menuId = id;
-  renderTimes(); renderMenuCards(); checkMenuMsg(); save();
+  renderMenuCards(); checkMenuMsg(); save();
 }
 
 function renderTimes() {
   var sel = $('po-time'); sel.innerHTML = '';
   var opts = timeOptions(state.menuId);
-  sel.appendChild(h('option', { value: '', text: opts.length ? 'Choose a time' : (state.style ? 'Pick a menu first' : 'Pick buffet or meals first') }));
+  sel.appendChild(h('option', { value: '', text: 'Choose a time' }));
   opts.forEach(function (t) { sel.appendChild(h('option', { value: t, text: niceTime(t), selected: t === state.time })); });
   if (opts.indexOf(state.time) === -1) state.time = '';
 }
 
 function checkMenuMsg() {
-  var msg = $('menu-msg');
-  if (state.menuId && state.date) {
-    var a = menuAvailability(state.menuId, state.date);
-    msg.hidden = a.ok;
-    msg.textContent = a.ok ? '' : 'The ' + MENUS[state.menuId].label + ' menu isn’t served on ' + niceDate(state.date) + '. Pick another date or menu, or call us on ' + SCENIC_PHONE + '.';
-  } else msg.hidden = true;
+  // Menus are filtered by date and time, so there's nothing to warn about here.
 }
 
 function fillStep1() {
-  var today = new Date(); today.setHours(0, 0, 0, 0);
-  $('po-date').min = today.toISOString().slice(0, 10);
-  $('po-date').value = state.date;
   $('po-guests').value = state.guests.length || '';
   $('po-occasion').value = state.occasion;
   $('po-requests').value = state.requests;
@@ -214,14 +261,13 @@ function fillStep1() {
   var et = $('po-event-type'); et.innerHTML = '';
   et.appendChild(h('option', { value: '', text: 'Choose one' }));
   EVENT_TYPES.forEach(function (t) { et.appendChild(h('option', { value: t, text: t, selected: state.eventType === t })); });
-  applyMode(); renderMenuCards(); renderTimes(); checkMenuMsg();
+  applyMode(); renderCalendar(); renderTimes(); renderMenuCards(); updateDepositNote();
 }
 
 function bindStep1() {
-  $('po-date').addEventListener('change', function () { state.date = this.value; renderMenuCards(); checkMenuMsg(); save(); });
-  $('po-time').addEventListener('change', function () { state.time = this.value; save(); });
+  $('po-time').addEventListener('change', function () { state.time = this.value; save(); afterWhenChange(); });
   $('po-event-type').addEventListener('change', function () { state.eventType = this.value; save(); });
-  $('po-guests').addEventListener('change', function () { setGuestCount(parseInt(this.value, 10) || 0); save(); });
+  $('po-guests').addEventListener('change', function () { setGuestCount(parseInt(this.value, 10) || 0); save(); updateDepositNote(); });
   [['po-occasion', 'occasion'], ['po-requests', 'requests']].forEach(function (p) {
     $(p[0]).addEventListener('input', function () { state[p[1]] = this.value; save(); });
   });
@@ -249,11 +295,10 @@ function setGuestCount(n) {
 }
 
 function step1Error() {
-  if (!state.style) return 'Choose a buffet or individual meals.';
-  if (!isBuffet() && !state.menuId) return 'Choose a menu.';
   if (!state.date) return 'Choose a date.';
-  if (!isBuffet() && !menuAvailability(state.menuId, state.date).ok) return 'That menu isn’t served on your date.';
   if (!state.time) return 'Choose a time.';
+  if (!state.style) return 'Choose a buffet or individual meals.';
+  if (!isBuffet() && !state.menuId) return availableMenus().length ? 'Choose a menu.' : 'None of our menus are served at that time. Try another time.';
   if (state.type === 'party' && state.guests.length < PARTY_MIN) return 'Large party bookings are for ' + PARTY_MIN + ' or more. For smaller groups, use Book a table.';
   if (state.guests.length < 2) return 'Enter how many guests are coming.';
   var o = state.organiser;
@@ -398,6 +443,14 @@ function bindStep2() {
     g.starter = prev.starter; g.main = prev.main; g.side = prev.side; g.dessert = prev.dessert;
     save(); renderGuestList(); renderEditor();
   });
+  $('share-menu').addEventListener('click', function () {
+    var url = new URL('menus.html#' + state.menuId, location.href).href;
+    var text = 'Here’s the ' + menu().label + ' menu for ' + niceDate(state.date) + ' at The Scenic Inn. Let me know what you’d like!';
+    if (navigator.share) { navigator.share({ title: 'The Scenic Inn menu', text: text, url: url }).catch(function () {}); return; }
+    var done = function () { $('share-msg').textContent = 'Link copied. Paste it into your group chat.'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(text + ' ' + url).then(done, function () { prompt('Copy this link:', url); });
+    else prompt('Copy this link:', url);
+  });
   $('buffet-notes').addEventListener('input', function () { state.buffetNotes = this.value; save(); });
   $('add-guest').addEventListener('click', function () {
     state.guests.push(blankGuest()); state.current = state.guests.length - 1;
@@ -438,6 +491,7 @@ function renderReview() {
   var o = state.organiser;
   $('buffet-review').hidden = !isBuffet();
   $('meals-review').hidden = isBuffet();
+  var rd = $('review-deposit'); rd.hidden = !depositDue(); rd.textContent = depositDue() ? depositText() : '';
   if (isBuffet()) {
     $('review-event').textContent = (state.type === 'event' ? (state.eventType || 'Event') : 'Large party') + ' with a buffet for ' + state.guests.length + ' guests, ' +
       niceDate(state.date) + ' at ' + niceTime(state.time) + '. Organised by ' + o.first + ' ' + o.last + (state.occasion ? ' (' + state.occasion + ')' : '') + '.';
@@ -513,6 +567,7 @@ function payload() {
     if (state.occasion) bits.push('Occasion: ' + state.occasion);
     if (!state.buffet.length) bits.push('Buffet to be chosen by phone');
     if (state.buffetNotes) bits.push('Dietary needs: ' + state.buffetNotes);
+    if (depositDue()) bits.push('Deposit of ' + formatPrice(depositDue()) + ' required, not yet paid');
     if (state.requests) bits.push(state.requests);
     return {
       bookingData: {
@@ -593,6 +648,13 @@ function send() {
     if (!res.ok) throw new Error('Server replied ' + res.status);
     $('sent-h').textContent = isBuffet() ? 'Booking sent' : 'Preorder sent';
     $('sent-line').textContent = 'Thanks ' + state.organiser.first + '. ' + state.guests.length + ' guests, ' + niceDate(state.date) + ' at ' + niceTime(state.time) + ', ' + (isBuffet() ? 'buffet' : menu().label + ' menu') + '.';
+    var dep = depositDue();
+    $('deposit-box').hidden = !dep;
+    if (dep) {
+      $('deposit-title').textContent = 'Secure your date with a ' + formatPrice(dep) + ' deposit';
+      $('deposit-text').textContent = 'Buffets for more than ' + BUFFET_DEPOSIT.overGuests + ' people need a deposit. It comes off your final bill.';
+      $('deposit-msg').textContent = '';
+    }
     state.sent = true; save(); go(4);
   }).catch(function () {
     clearTimeout(timer);
@@ -620,7 +682,7 @@ function go(step) {
   if (step === 2) {
     $('buffet-work').hidden = !isBuffet(); $('meals-work').hidden = isBuffet();
     if (isBuffet()) renderBuffet();
-    else { $('share-menu').href = 'menus.html#' + state.menuId; renderGuestList(); renderEditor(); }
+    else { $('share-msg').textContent = ''; renderGuestList(); renderEditor(); }
   }
   if (step === 3) renderReview();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -656,5 +718,9 @@ function reset() {
   $('send-btn').addEventListener('click', send);
   $('start-over').addEventListener('click', function () { if (confirm('Clear this preorder and start again?')) reset(); });
   $('new-preorder').addEventListener('click', reset);
+  // Placeholder until PayPal is set up (see README)
+  $('paypal-btn').addEventListener('click', function () {
+    $('deposit-msg').textContent = 'Online payments aren’t switched on yet. We’ll call you to take the deposit.';
+  });
   go(state.step === 4 ? 1 : (state.step || 1));
 })();

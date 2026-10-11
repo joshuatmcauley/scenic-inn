@@ -12,6 +12,9 @@ Static website for The Scenic Inn, a family-run bar and restaurant near the Dark
 - `menu-data.js`: **every menu, price and allergen lives here.** Edit this one file to change a menu.
 - `config.js`: where bookings and preorders are sent (the Railway backend from the scenic-inn-website repo)
 - `styles.css`: all styling
+- `loader.js`: loading screen (photo collage + logo), shown once per visit
+- `404.html`: custom page-not-found (GitHub Pages uses it automatically)
+- `TESTING.md`: step-by-step test checklist
 
 ## How bookings and preorders are sent
 Both post to `SCENIC_API + '/booking-submission'` (see `config.js`), the existing endpoint in
@@ -20,6 +23,7 @@ a PDF with every guest's choices. If the backend can't be reached, the preorder 
 to email the order instead, and the organiser can print it or download a spreadsheet.
 
 ## Still to fill in
+- Buffet deposit amount: `BUFFET_DEPOSIT` in `config.js` (currently £50 for more than 20 guests). The PayPal button is a placeholder.
 - Buffet menu: `BUFFET` in `menu-data.js` (the old site loaded it from the live database)
 - Check Sunday lunch prices in `menu-data.js` (taken from the old booking system)
 - Sunday lunch menu (`menu-data.js`)

@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<script src="loader.js"></script>
 
 <header class="site-header dark">
   <div class="wrap">
@@ -45,25 +46,31 @@
 
   <!-- STEP 1 -->
   <section data-po-step="1" aria-labelledby="s1-h">
+    <h2 id="s1-h" class="po-h2">When are you coming?</h2>
+    <div class="when-grid">
+      <div class="calendar" id="calendar" aria-label="Choose a date"></div>
+      <div class="when-side">
+        <p class="chosen-date" id="chosen-date" aria-live="polite">No date chosen yet</p>
+        <div class="fields fields-stack">
+          <label class="field">Time<select id="po-time" required></select></label>
+          <label class="field">Number of guests<input type="number" id="po-guests" min="2" max="150" inputmode="numeric" required></label>
+          <label class="field" id="event-type-field">Type of event<select id="po-event-type"></select></label>
+          <label class="field">Occasion <span class="hint">Optional</span><input type="text" id="po-occasion" placeholder="Christmas party, birthday…"></label>
+        </div>
+        <p class="deposit-note" id="deposit-note" hidden></p>
+      </div>
+    </div>
+
     <div id="style-block">
-      <h2 id="s1-h" class="po-h2">How would you like to eat?</h2>
+      <h2 class="po-h2 spaced">How would you like to eat?</h2>
       <div class="menu-cards" id="style-cards" role="radiogroup" aria-label="How you'd like to eat"></div>
     </div>
 
     <div id="menu-block">
       <h2 class="po-h2 spaced">Which menu?</h2>
+      <p class="menu-hint" id="menu-hint"></p>
       <div class="menu-cards" id="menu-cards" role="radiogroup" aria-label="Menu"></div>
     </div>
-
-    <h2 class="po-h2 spaced" id="when-h">When, and how many?</h2>
-    <div class="fields">
-      <label class="field" id="event-type-field">Type of event<select id="po-event-type"></select></label>
-      <label class="field">Date<input type="date" id="po-date" required></label>
-      <label class="field">Time<select id="po-time" required></select></label>
-      <label class="field">Number of guests<input type="number" id="po-guests" min="2" max="150" inputmode="numeric" required></label>
-      <label class="field">Occasion <span class="hint">Optional</span><input type="text" id="po-occasion" placeholder="Christmas party, birthday…"></label>
-    </div>
-    <p class="field-msg" id="menu-msg" hidden></p>
 
     <h2 class="po-h2 spaced">Who’s organising?</h2>
     <div class="fields">
@@ -106,7 +113,8 @@
         <ol class="guest-list" id="guest-list"></ol>
         <div class="guest-panel-foot">
           <button type="button" class="btn btn-outline btn-small" id="add-guest">Add a guest</button>
-          <a class="share-link" id="share-menu" href="menus.html">Send the menu round</a>
+          <button type="button" class="link-btn share-link" id="share-menu">Send the menu around</button>
+          <span class="share-msg" id="share-msg" aria-live="polite"></span>
         </div>
       </aside>
 
@@ -174,6 +182,8 @@
       <p class="hint-line">A guide only. The final bill is settled on the night and drinks aren’t included.</p>
     </div>
 
+    <p class="deposit-note" id="review-deposit" hidden></p>
+
     <div class="actions no-print">
       <button type="button" class="btn btn-outline" data-po-go="2">Change choices</button>
       <button type="button" class="btn btn-outline" id="print-btn">Print or save as PDF</button>
@@ -189,6 +199,12 @@
     <h2 id="sent-h">Sent</h2>
     <p id="sent-line"></p>
     <p>We’ll be in touch to confirm. If anything changes, call us on <a href="tel:+442820751260" style="color:#EAE3D5">028 2075 1260</a> and quote the organiser’s name.</p>
+    <div class="deposit-box" id="deposit-box" hidden>
+      <p class="title" id="deposit-title"></p>
+      <p id="deposit-text"></p>
+      <button type="button" class="paypal-btn" id="paypal-btn"><span class="pp-pay">Pay</span><span class="pp-pal">Pal</span></button>
+      <p class="deposit-msg" id="deposit-msg" role="status"></p>
+    </div>
     <div class="btn-row">
       <a href="menus.html" class="btn btn-light">See the menus</a>
       <button type="button" class="btn btn-outline" id="new-preorder">Start a new booking</button>
