@@ -435,3 +435,7 @@ html.is-loading { overflow: hidden; }
 
 /* Hero title in the logo's lettering (Cinzel is the closest web font to the logo's Trajan-style caps) */
 .hero h1.logo-type { font-family: 'Cinzel', 'Trajan Pro', Georgia, serif; font-weight: 400; text-transform: uppercase; font-size: clamp(44px, 6.4vw, 100px); line-height: 1; letter-spacing: 0.02em; }
+
+/* Hero: the full logo in place of the title text */
+.hero h1.hero-logo { margin: 0; line-height: 0; }
+.hero h1.hero-logo img { width: 100%; max-width: 560px; height: auto; margin-left: -1.5%; }
