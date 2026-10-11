@@ -346,15 +346,16 @@ function renderEditor() {
 
   // Allergen filter (only menus that list allergens)
   $('avoid-box').hidden = !m.showAllergens;
-  var chips = $('avoid-chips'); chips.innerHTML = '';
-  if (m.showAllergens) AVOID_CODES.forEach(function (code) {
-    var cb = h('input', { type: 'checkbox', checked: g.avoid.indexOf(code) !== -1 });
-    cb.addEventListener('change', function () {
-      if (this.checked) g.avoid.push(code); else g.avoid = g.avoid.filter(function (c) { return c !== code; });
-      save(); flagDishes();
+  var sel = $('avoid-select'); sel.innerHTML = '';
+  if (m.showAllergens) {
+    AVOID_CODES.forEach(function (code) {
+      sel.appendChild(h('option', { value: code, text: ALLERGENS[code], selected: g.avoid.indexOf(code) !== -1 }));
     });
-    chips.appendChild(h('label', { class: 'chip' }, [cb, ALLERGENS[code]]));
-  });
+    sel.onchange = function () {
+      g.avoid = Array.prototype.filter.call(sel.options, function (o) { return o.selected; }).map(function (o) { return o.value; });
+      save(); flagDishes();
+    };
+  }
 
   // Courses
   var box = $('courses'); box.innerHTML = '';

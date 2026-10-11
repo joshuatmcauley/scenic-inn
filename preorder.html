@@ -125,10 +125,9 @@
         </div>
         <label class="field">Guest’s name <span class="hint">So the staff know whose plate is whose</span><input type="text" id="guest-name" autocomplete="off"></label>
 
-        <fieldset class="avoid" id="avoid-box">
-          <legend>Avoiding anything? <span class="hint">We’ll flag dishes that contain it</span></legend>
-          <div class="chips" id="avoid-chips"></div>
-        </fieldset>
+        <label class="field avoid" id="avoid-box">Avoiding anything? <span class="hint">We’ll flag dishes that contain it. Ctrl/Cmd-click, or tap, to pick more than one</span>
+          <select id="avoid-select" multiple size="4"></select>
+        </label>
 
         <div id="courses"></div>
 
