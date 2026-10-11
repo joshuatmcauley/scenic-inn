@@ -647,7 +647,7 @@ function send() {
   }).then(function (res) {
     clearTimeout(timer);
     if (!res.ok) throw new Error('Server replied ' + res.status);
-    $('sent-h').textContent = isBuffet() ? 'Booking sent' : 'Preorder sent';
+    $('sent-h').textContent = isBuffet() ? 'Booking received' : 'Preorder received';
     $('sent-line').textContent = 'Thanks ' + state.organiser.first + '. ' + state.guests.length + ' guests, ' + niceDate(state.date) + ' at ' + niceTime(state.time) + ', ' + (isBuffet() ? 'buffet' : menu().label + ' menu') + '.';
     var dep = depositDue();
     $('deposit-box').hidden = !dep;

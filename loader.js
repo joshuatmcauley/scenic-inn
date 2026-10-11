@@ -17,7 +17,7 @@
   document.documentElement.classList.add('is-loading');
   var start = Date.now();
   function hide() {
-    var wait = Math.max(0, 1200 - (Date.now() - start));
+    var wait = Math.max(0, 5000 - (Date.now() - start));
     setTimeout(function () {
       el.classList.add('done');
       document.documentElement.classList.remove('is-loading');
@@ -27,5 +27,5 @@
   }
   if (document.readyState === 'complete') hide();
   else window.addEventListener('load', hide);
-  setTimeout(hide, 4000); // never hold people up for long
+  setTimeout(hide, 7000); // never hold people up for long
 })();

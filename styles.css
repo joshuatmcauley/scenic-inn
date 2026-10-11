@@ -425,6 +425,9 @@ html.is-loading { overflow: hidden; }
 
 /* ===== Deposit & PayPal placeholder ===== */
 .deposit-note { margin-top: 20px; padding: 14px 18px; border-left: 0; background: #F3E9D2; border-radius: 2px; font-size: 15px; }
+.pending-note { margin: 20px 0; padding: 18px 22px; background: #3A4434; border-radius: 2px; }
+.pending-note .title { font-weight: 600; margin-bottom: 6px; color: var(--paper); }
+.pending-note p:not(.title) { color: #DCD4C4; margin: 0; font-size: 15px; }
 .deposit-box { margin: 24px 0 8px; padding: 24px; background: var(--paper); color: var(--bark); border-radius: 2px; max-width: 480px; }
 .deposit-box .title { font-weight: 600; font-size: 18px; margin-bottom: 6px; }
 .deposit-box p + p { color: var(--muted); margin-top: 0; }
