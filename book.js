@@ -18,9 +18,9 @@ function range(from, to) { var out = []; for (var m = from; m <= to; m += 30) ou
 // Slots follow the menu schedule (minutes after midnight)
 function schedule(dow) {
   var lunch = range(720, 990), eve = range(1020, 1230), tea = range(1020, 1200);
-  if (dow === 0) return [{ menu: 'Sunday lunch', hours: '12pm to 5pm', mins: lunch }, { menu: 'Weekend evening', hours: '5pm to 9pm', mins: eve }];
-  if (dow >= 5) return [{ menu: 'Lunch', hours: '12pm to 4:45pm', mins: lunch }, { menu: 'Weekend evening', hours: '5pm to 9pm', mins: eve }];
-  return [{ menu: 'Lunch', hours: '12pm to 4:45pm', mins: lunch }, { menu: 'Tea time', hours: '5pm to 8:30pm', mins: tea }];
+  if (dow === 0) return [{ menu: 'Sunday lunch', hours: '12pm to 5pm', mins: lunch }, { menu: 'Evening', hours: '5pm to 9pm', mins: eve }];
+  if (dow >= 5) return [{ menu: 'Lunch', hours: '12pm to 4:45pm', mins: lunch }, { menu: 'Evening', hours: '5pm to 9pm', mins: eve }];
+  return [{ menu: 'Lunch', hours: '12pm to 4:45pm', mins: lunch }, { menu: 'Tea time', hours: 'from 5pm', mins: tea }];
 }
 
 function fmt(m) {
@@ -81,6 +81,8 @@ function render() {
   $('adults').textContent = state.adults;
   $('children').textContent = state.children;
   $('large-notice').hidden = !isLarge();
+  var sub = document.querySelector('#details button[type="submit"]');
+  if (sub && !sub.disabled) sub.textContent = isLarge() ? 'Continue to food choices' : 'Confirm booking';
 
   var d = days[state.dateIdx];
   $('sum-guests').textContent = guestsText();
@@ -92,7 +94,6 @@ function render() {
   if (state.step === 2) renderSlots();
   if (state.step === 4) {
     $('confirm-line').textContent = guestsText() + ', ' + dayText(d) + ' at ' + fmt(state.time) + '.';
-    $('confirm-preorder').hidden = !isLarge();
   }
 }
 
@@ -124,19 +125,42 @@ $('details').addEventListener('submit', function (e) {
 
 function submitBooking(details) {
   var d = days[state.dateIdx];
+  var iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  var hh = Math.floor(state.time / 60), mm = state.time % 60;
+  var time24 = String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+
+  // Groups of 11+ carry on to the preorder, which sends booking and food together
+  if (isLarge()) {
+    sessionStorage.setItem('scenic-booking', JSON.stringify({
+      date: iso, time: time24, guests: state.adults + state.children,
+      firstName: details.firstName, lastName: details.lastName, email: details.email, phone: details.phone,
+      requests: details.requests || ''
+    }));
+    location.href = 'preorder.html?type=party&from=booking';
+    return;
+  }
+
+  var btn = document.querySelector('#details button[type="submit"]');
+  btn.disabled = true; btn.textContent = 'Booking…';
   var booking = {
-    adults: state.adults,
-    children: state.children,
-    date: d.toISOString().slice(0, 10),
-    time: fmt(state.time),
-    menu: state.menu,
-    preorder: isLarge(),
-    customer: details
+    firstName: details.firstName, lastName: details.lastName, email: details.email, phone: details.phone,
+    date: iso, time: time24, partySize: state.adults + state.children,
+    specialRequests: [state.children ? state.adults + ' adults, ' + state.children + ' children' : '', state.menu ? 'Menu: ' + state.menu : '', details.requests || '', details.marketing ? 'Happy to receive offers' : '']
+      .filter(Boolean).join('. '),
+    source: 'website-booking'
   };
-  // TODO: send `booking` to the backend, e.g.
-  // fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(booking) })
-  console.log('Booking', booking);
-  go(4);
+  fetch(SCENIC_API + '/booking-submission', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookingData: booking, preorderData: [] })
+  }).then(function (res) {
+    if (!res.ok) throw new Error('Server replied ' + res.status);
+    go(4);
+  }).catch(function () {
+    $('details-error').hidden = false;
+    $('details-error').textContent = 'Your booking didn’t go through. Please try again, or call us on ' + SCENIC_PHONE + '.';
+  }).then(function () {
+    btn.disabled = false; btn.textContent = 'Confirm booking';
+  });
 }
 
 $('restart').addEventListener('click', function () {
