@@ -213,7 +213,7 @@ function renderStyleCards() {
 function applyMode() {
   var ev = state.type === 'event';
   document.title = (ev ? 'Book an event' : 'Book a large party') + ' – The Scenic Inn';
-  $('po-title').textContent = ev ? 'Events' : 'Large party';
+  $('po-title').textContent = ev ? 'Book for an event' : 'Large party';
   $('po-intro').textContent = ev
     ? 'Birthdays, christenings, wakes and celebrations. Tell us about your event, choose a buffet, and we’ll look after the rest.'
     : 'Booking for ' + PARTY_MIN + ' or more? Choose a buffet, or have everyone pick their own meal ahead of time so the food comes out together. Your progress saves on this device, so you can collect choices over a few days.';
@@ -346,15 +346,21 @@ function renderEditor() {
 
   // Allergen filter (only menus that list allergens)
   $('avoid-box').hidden = !m.showAllergens;
-  var sel = $('avoid-select'); sel.innerHTML = '';
+  var list = $('avoid-list'); list.innerHTML = '';
+  $('avoid-drop').open = false;
+  function avoidSummary() {
+    $('avoid-summary').textContent = g.avoid.length ? g.avoid.map(function (c) { return ALLERGENS[c]; }).join(', ') : 'Nothing';
+  }
   if (m.showAllergens) {
     AVOID_CODES.forEach(function (code) {
-      sel.appendChild(h('option', { value: code, text: ALLERGENS[code], selected: g.avoid.indexOf(code) !== -1 }));
+      var box = h('input', { type: 'checkbox', value: code, checked: g.avoid.indexOf(code) !== -1 });
+      box.addEventListener('change', function () {
+        g.avoid = Array.prototype.filter.call(list.querySelectorAll('input'), function (i) { return i.checked; }).map(function (i) { return i.value; });
+        avoidSummary(); save(); flagDishes();
+      });
+      list.appendChild(h('label', { class: 'multi-opt' }, [box, ALLERGENS[code]]));
     });
-    sel.onchange = function () {
-      g.avoid = Array.prototype.filter.call(sel.options, function (o) { return o.selected; }).map(function (o) { return o.value; });
-      save(); flagDishes();
-    };
+    avoidSummary();
   }
 
   // Courses: one compact dropdown per course
@@ -363,7 +369,7 @@ function renderEditor() {
     if (!hasCourse(c.key)) return;
     var required = c.key === 'main';
     var sel = h('select', { id: 'dish-' + c.key, class: 'dish-select' });
-    sel.appendChild(h('option', { value: '', text: required ? 'Choose a main course' : 'No ' + (c.key === 'starter' ? 'starter' : 'dessert') }));
+    sel.appendChild(h('option', { value: '', text: required ? 'Choose a main course' : 'Choose a ' + (c.key === 'starter' ? 'starter' : 'dessert') + ' (or leave blank for none)' }));
     var groups = sectionsFor(c.key);
     groups.forEach(function (s) {
       var parent = groups.length > 1 ? h('optgroup', { label: s.title }) : sel;
@@ -631,161 +637,10 @@ function plainText() {
   return lines.join('\n');
 }
 
-function downloadCsv() {
-  if (isBuffet()) {
-    var rows0 = [['Buffet dish', 'Servings']].concat(state.buffet.map(function (n) { return [n, state.guests.length]; }));
-    var csv0 = rows0.map(function (r) { return r.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','); }).join('\r\n');
-    var a0 = h('a', { href: URL.createObjectURL(new Blob([csv0], { type: 'text/csv' })), download: 'scenic-inn-buffet-' + state.date + '.csv' });
-    document.body.appendChild(a0); a0.click(); a0.remove(); return;
-  }
-  var cols = COURSES.filter(function (c) { return hasCourse(c.key); });
-  var rows = [['#', 'Guest'].concat(cols.map(function (c) { return c.label; })).concat(['Side', 'Notes', 'Price'])];
-  state.guests.forEach(function (g, i) {
-    rows.push([i + 1, guestLabel(i)].concat(cols.map(function (c) { return g[c.key] || ''; }))
-      .concat([g.side || '', payload().preorderData[i].special_instructions || '', guestPrice(g).toFixed(2)]));
-  });
-  var csv = rows.map(function (r) { return r.map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','); }).join('\r\n');
-  var a = h('a', { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: 'scenic-inn-preorder-' + state.date + '.csv' });
-  document.body.appendChild(a); a.click(); a.remove();
-}
-
-// ---------- kitchen PDF ----------
-// A plain, printable sheet for the kitchen: logo, booking details, then each
-// course with identical dishes grouped together (all the steaks together, etc).
-function loadLogo() {
-  // Shrink the logo before it goes into the PDF so the file stays small
-  return new Promise(function (resolve) {
-    var img = new Image();
-    img.onload = function () {
-      try {
-        var c = document.createElement('canvas');
-        c.width = 480; c.height = Math.round(480 * img.naturalHeight / img.naturalWidth);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        resolve(c.toDataURL('image/png'));
-      } catch (e) { resolve(null); }
-    };
-    img.onerror = function () { resolve(null); };
-    img.src = 'logo.png';
-  });
-}
-
-// Position of a dish on the menu, so related dishes (e.g. different steaks) stay together
 function dishOrder(course, name) {
   var n = 0, found = 9999;
   sectionsFor(course).forEach(function (s) { s.items.forEach(function (i) { if (i.name === name) found = n; n++; }); });
   return found;
-}
-
-// Group guests by the dish they chose for a course
-function dishGroups(course) {
-  var map = {};
-  state.guests.forEach(function (g, i) {
-    var name = g[course] || (course === 'main' ? 'NOT CHOSEN YET' : null);
-    if (!name) return;
-    (map[name] = map[name] || []).push(i);
-  });
-  return Object.keys(map).map(function (n) {
-    return { name: n, guests: map[n], order: map[n] && n === 'NOT CHOSEN YET' ? 99999 : dishOrder(course, n) };
-  }).sort(function (a, b) { return a.order - b.order || a.name.localeCompare(b.name); });
-}
-
-function buildKitchenPdf(logo) {
-  var JsPDF = window.jspdf.jsPDF;
-  var doc = new JsPDF({ unit: 'mm', format: 'a4' });
-  var W = 210, H = 297, M = 14, CW = W - M * 2, y = M;
-  var INK = [40, 34, 30], GREY = [110, 100, 92], RUST = [142, 59, 34], LINE = [200, 192, 178];
-  var p = payload(), b = p.bookingData, o = state.organiser;
-  function ink(c) { doc.setTextColor(c[0], c[1], c[2]); }
-  function font(style, size) { doc.setFont('helvetica', style); doc.setFontSize(size); }
-  function rule() { doc.setDrawColor(LINE[0], LINE[1], LINE[2]); doc.setLineWidth(0.3); doc.line(M, y, W - M, y); }
-  function room(need) { if (y + need > H - M - 6) { doc.addPage(); y = M; return true; } return false; }
-
-  // Header
-  if (logo) { try { doc.addImage(logo, 'PNG', M, y, 46, 23.4); } catch (e) {} }
-  ink(INK); font('bold', 20);
-  doc.text('KITCHEN ORDER', W - M, y + 8, { align: 'right' });
-  font('bold', 13);
-  doc.text(niceDate(state.date) + ' at ' + niceTime(state.time), W - M, y + 15, { align: 'right' });
-  font('normal', 11);
-  doc.text(b.partySize + ' guests  ·  ' + (isBuffet() ? 'Buffet' : menu().label + ' menu'), W - M, y + 21, { align: 'right' });
-  y += 29; rule(); y += 6;
-
-  font('normal', 10.5); ink(INK);
-  var info = [
-    'Organiser: ' + o.first + ' ' + o.last + '  ·  ' + o.phone,
-    (state.type === 'event' ? 'Event' + (state.eventType ? ': ' + state.eventType : '') : 'Large party') + (state.occasion ? '  ·  ' + state.occasion : '')
-  ];
-  if (state.requests) info.push('Notes: ' + state.requests);
-  info.forEach(function (line) { doc.splitTextToSize(line, CW).forEach(function (l) { doc.text(l, M, y); y += 5; }); });
-  y += 4;
-
-  if (isBuffet()) {
-    font('bold', 13); doc.text('Buffet for ' + b.partySize, M, y); y += 7;
-    font('normal', 12);
-    (state.buffet.length ? state.buffet : ['To be chosen by phone']).forEach(function (n) { room(7); doc.text('[  ]  ' + n, M + 2, y); y += 7; });
-    if (state.buffetNotes) { y += 3; font('bold', 11); ink(RUST); doc.splitTextToSize('Dietary needs: ' + state.buffetNotes, CW).forEach(function (l) { room(6); doc.text(l, M, y); y += 6; }); }
-    return doc;
-  }
-
-  // One section per course, identical dishes grouped together
-  var TITLES = { starter: 'STARTERS', main: 'MAINS', dessert: 'DESSERTS' };
-  var cols = COURSES.filter(function (c) { return hasCourse(c.key); });
-  cols.forEach(function (c) {
-    var groups = dishGroups(c.key);
-    if (!groups.length) return;
-    var total = groups.reduce(function (a, g) { return a + g.guests.length; }, 0);
-    room(34);
-    doc.setFillColor(INK[0], INK[1], INK[2]); doc.rect(M, y - 5, CW, 8, 'F');
-    font('bold', 11); doc.setTextColor(255, 255, 255);
-    doc.text(TITLES[c.key] + '   ' + total, M + 2.5, y + 0.4); y += 9; ink(INK);
-
-    groups.forEach(function (grp, gi) {
-      var cont = false;
-      function head() {
-        font('bold', 12.5); ink(INK);
-        doc.splitTextToSize(grp.guests.length + ' x ' + grp.name + (cont ? ' (cont.)' : ''), CW).forEach(function (l) { doc.text(l, M, y); y += 5.6; });
-        y += 0.6;
-      }
-      if (gi > 0) room(24);
-      head();
-      grp.guests.forEach(function (gidx) {
-        var g = state.guests[gidx], notes = p.preorderData[gidx].special_instructions || '';
-        var side = c.key === 'main' && g.side ? 'Side: ' + g.side : '';
-        font('bold', 10);
-        var nameL = doc.splitTextToSize(guestLabel(gidx), 50);
-        font('normal', 10);
-        var sideL = side ? doc.splitTextToSize(side, 42) : [];
-        var noteL = notes ? doc.splitTextToSize(notes, CW - 100) : [];
-        var lines = Math.max(nameL.length, sideL.length, noteL.length, 1);
-        var rh = lines * 4.5 + 2;
-        if (room(rh + 2)) { cont = true; head(); }
-        font('bold', 10); ink(INK); nameL.forEach(function (l, k) { doc.text(l, M + 5, y + k * 4.5); });
-        font('normal', 10); sideL.forEach(function (l, k) { doc.text(l, M + 58, y + k * 4.5); });
-        font('bold', 10); ink(RUST); noteL.forEach(function (l, k) { doc.text(l, M + 100, y + k * 4.5); }); ink(INK);
-        y += rh - 3.2;
-        doc.setDrawColor(228, 222, 212); doc.setLineWidth(0.2); doc.line(M + 5, y, W - M, y);
-        y += 4.2;
-      });
-      y += 3;
-    });
-    y += 3;
-  });
-
-  var pages = doc.getNumberOfPages();
-  for (var pg = 1; pg <= pages; pg++) {
-    doc.setPage(pg); font('normal', 8); ink(GREY);
-    doc.text('The Scenic Inn  ·  ' + o.last + ', ' + niceDate(state.date) + '  ·  page ' + pg + ' of ' + pages, W / 2, H - 7, { align: 'center' });
-  }
-  return doc;
-}
-
-function downloadKitchenPdf() {
-  if (!window.jspdf) { window.print(); return; }
-  var btn = $('print-btn'); btn.disabled = true;
-  loadLogo().then(function (logo) {
-    var doc = buildKitchenPdf(logo);
-    doc.save('scenic-inn-kitchen-' + state.date + '-' + (state.organiser.last || 'order').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.pdf');
-  }).catch(function () { window.print(); }).then(function () { btn.disabled = false; });
 }
 
 function send() {
@@ -866,8 +721,6 @@ function reset() {
 
   bindStep1(); bindStep2();
   document.querySelectorAll('[data-po-go]').forEach(function (b) { b.addEventListener('click', function () { go(Number(b.getAttribute('data-po-go'))); }); });
-  $('print-btn').addEventListener('click', downloadKitchenPdf);
-  $('csv-btn').addEventListener('click', downloadCsv);
   $('send-btn').addEventListener('click', send);
   $('start-over').addEventListener('click', function () { if (confirm('Clear this preorder and start again?')) reset(); });
   $('new-preorder').addEventListener('click', reset);
@@ -877,3 +730,9 @@ function reset() {
   });
   go(state.step === 4 ? 1 : (state.step || 1));
 })();
+
+// Close the "Avoiding anything?" dropdown when tapping outside it
+document.addEventListener('click', function (e) {
+  var d = document.getElementById('avoid-drop');
+  if (d && d.open && !d.contains(e.target)) d.open = false;
+});

@@ -314,9 +314,16 @@ p { margin: 0; }
 .avoid { margin: 28px 0 0; max-width: 320px; }
 .course legend { font-weight: 600; padding: 0; margin-bottom: 12px; }
 .hint { font-weight: 400; font-size: 15px; color: var(--muted); }
-.avoid select[multiple] { min-height: 0; height: 7em; padding: 6px; border: 1px solid #8F8472; border-radius: 2px; background: var(--paper-3); font: 400 15px var(--sans); color: var(--bark); }
-.avoid select[multiple] option { padding: 5px 8px; border-radius: 2px; }
-.avoid select[multiple] option:checked { background: var(--rust); color: #fff; }
+.avoid > span { display: block; margin-bottom: 8px; }
+.multi { position: relative; }
+.multi summary { list-style: none; display: flex; align-items: center; min-height: 48px; padding: 0 40px 0 12px; border: 1px solid #8F8472; border-radius: 2px; background: var(--paper-3); font: 400 17px var(--sans); color: var(--bark); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.multi summary::-webkit-details-marker { display: none; }
+.multi summary::after { content: ''; position: absolute; right: 16px; top: 20px; width: 8px; height: 8px; border-right: 2px solid var(--bark); border-bottom: 2px solid var(--bark); transform: rotate(45deg); }
+.multi[open] summary::after { top: 24px; transform: rotate(225deg); }
+.multi-list { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); padding: 6px 0; border: 1px solid #8F8472; border-radius: 2px; background: var(--paper-3); box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+.multi-opt { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 14px; font-size: 16px; cursor: pointer; }
+.multi-opt:hover { background: var(--paper-2, rgba(0,0,0,.04)); }
+.multi-opt input { width: 20px; height: 20px; accent-color: var(--rust); margin: 0; }
 .course { border: 0; padding: 0; margin: 36px 0 0; }
 .dishes { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 .dish-group { grid-column: 1 / -1; margin-top: 10px; font-size: 14px; font-weight: 600; color: var(--muted); }

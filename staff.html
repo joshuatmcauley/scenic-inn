@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scenic Staff">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F4EFE4">
+<link rel="apple-touch-icon" href="mark.png">
+<title>Staff – The Scenic Inn</title>
+<style>
+  :root {
+    --bg: #F4EFE4; --card: #FFFDF8; --ink: #28221E; --muted: #6E645C; --line: #DCD3C3;
+    --rust: #8E3B22; --green: #3F6B3A; --amber: #A26A12; --grey: #8A8178;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.45 var(--sans); }
+  body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  [hidden] { display: none !important; }
+
+  /* Login */
+  .auth { max-width: 420px; margin: 8vh auto 40px; padding: 0 20px; }
+  .auth img { display: block; width: 220px; max-width: 70%; margin: 0 auto 28px; }
+  .auth h1 { font-size: 24px; margin: 0 0 18px; text-align: center; }
+  .field { display: block; margin-bottom: 16px; font-weight: 600; font-size: 15px; }
+  .field input { display: block; width: 100%; margin-top: 6px; min-height: 50px; padding: 0 14px; border: 1px solid #8F8472; border-radius: 4px; background: var(--card); font-weight: 400; font-size: 17px; }
+  .check { display: flex; gap: 10px; align-items: center; margin: 4px 0 20px; font-size: 16px; }
+  .check input { width: 22px; height: 22px; accent-color: var(--rust); }
+  .btn { min-height: 48px; padding: 0 20px; border: 1px solid var(--ink); border-radius: 4px; background: transparent; font-weight: 600; font-size: 16px; }
+  .btn-primary { background: var(--ink); color: #fff; width: 100%; }
+  .btn-small { min-height: 40px; padding: 0 14px; font-size: 15px; }
+  .link { background: none; border: 0; padding: 8px 0; color: var(--rust); text-decoration: underline; font-size: 15px; }
+  .error { color: var(--rust); font-weight: 600; margin: 12px 0 0; }
+  .note { color: var(--muted); font-size: 14px; }
+
+  /* Dashboard */
+  header.bar { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 20px; background: var(--bg); border-bottom: 1px solid var(--line); }
+  header.bar img { height: 40px; }
+  header.bar .grow { flex: 1; }
+  .updated { font-size: 13px; color: var(--muted); }
+  main { max-width: 980px; margin: 0 auto; padding: 16px 20px 60px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .tab { min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); font-weight: 600; font-size: 15px; }
+  .tab[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .tab .count { font-weight: 400; opacity: .75; margin-left: 4px; }
+  .search { width: 100%; min-height: 46px; padding: 0 14px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 4px; background: var(--card); }
+  .day { margin: 26px 0 10px; font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .empty { padding: 40px 0; text-align: center; color: var(--muted); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+  .card.is-new { border-color: var(--rust); box-shadow: 0 0 0 2px rgba(142,59,34,.15); }
+  .card.cancelled { opacity: .55; }
+  .summary { display: grid; grid-template-columns: 92px 1fr auto; gap: 4px 14px; align-items: center; width: 100%; padding: 14px 16px; background: none; border: 0; text-align: left; }
+  .when { font-weight: 700; font-size: 20px; line-height: 1.1; }
+  .when small { display: block; font-weight: 400; font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .who { min-width: 0; }
+  .who strong { font-size: 18px; }
+  .who .sub { display: block; font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pills { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #fff; background: var(--grey); white-space: nowrap; }
+  .pill.pending { background: var(--amber); }
+  .pill.confirmed { background: var(--green); }
+  .pill.cancelled { background: var(--grey); }
+  .pill.new { background: var(--rust); }
+  .pill.pre { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+
+  .details { padding: 4px 16px 18px; border-top: 1px solid var(--line); }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 20px; margin: 14px 0; font-size: 15px; }
+  .meta span { display: block; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .meta a { color: var(--ink); }
+  .requests { margin: 0 0 14px; padding: 10px 12px; background: var(--bg); border-radius: 4px; font-size: 15px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .btn.ok { border-color: var(--green); color: var(--green); }
+  .btn.cancel { border-color: var(--rust); color: var(--rust); }
+
+  .course-h { margin: 18px 0 6px; padding: 6px 10px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 700; letter-spacing: .05em; border-radius: 3px; }
+  .dish { margin: 10px 0 2px; font-weight: 700; font-size: 17px; }
+  .guest { display: grid; grid-template-columns: minmax(120px, 1.2fr) 1fr 1.6fr; gap: 2px 12px; padding: 5px 0 5px 14px; border-bottom: 1px solid #EEE7DA; font-size: 15px; }
+  .guest .gname { font-weight: 600; }
+  .guest .gnote { color: var(--rust); font-weight: 600; }
+  .buffet li { margin: 4px 0; }
+
+  @media (max-width: 560px) {
+    .summary { grid-template-columns: 70px 1fr; }
+    .pills { grid-column: 1 / -1; flex-direction: row; justify-content: flex-start; }
+    .guest { grid-template-columns: 1fr; padding-left: 8px; }
+  }
+
+  /* Printing one booking for the kitchen */
+  @media print {
+    body { background: #fff; padding: 0; }
+    header.bar, .tabs, .search, .day, .actions, .no-print { display: none !important; }
+    .card { display: none; border: 0; box-shadow: none; }
+    .card.printing { display: block; }
+    .card.printing .details { display: block !important; border: 0; }
+    .print-head { display: flex !important; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .course-h { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  .print-head { display: none; }
+  .print-head img { height: 54px; }
+  .print-head strong { font-size: 22px; }
+</style>
+</head>
+<body>
+
+<!-- SIGN IN -->
+<section class="auth" id="login-view" hidden>
+  <img src="logo.png" alt="The Scenic Inn">
+  <h1>Staff sign in</h1>
+  <form id="login-form" novalidate>
+    <label class="field">Username<input type="text" id="login-user" autocomplete="username" autocapitalize="none" required></label>
+    <label class="field">Password<input type="password" id="login-pass" autocomplete="current-password" required></label>
+    <label class="check"><input type="checkbox" id="login-remember" checked> Keep me signed in on this device</label>
+    <button type="submit" class="btn btn-primary" id="login-btn">Sign in</button>
+    <p class="error" id="login-error" hidden></p>
+  </form>
+  <p><button type="button" class="link" id="show-setup">First time? Create the staff login</button></p>
+</section>
+
+<!-- FIRST-TIME SETUP -->
+<section class="auth" id="setup-view" hidden>
+  <img src="logo.png" alt="The Scenic Inn">
+  <h1>Create the staff login</h1>
+  <p class="note">You’ll need the setup code saved in Railway as CREATE_ADMIN_SECRET. The password needs 12 or more characters with a capital letter, a small letter, a number and a symbol.</p>
+  <form id="setup-form" novalidate>
+    <label class="field">Setup code<input type="password" id="setup-secret" autocomplete="off" required></label>
+    <label class="field">Username<input type="text" id="setup-user" autocomplete="username" autocapitalize="none" required></label>
+    <label class="field">Email<input type="email" id="setup-email" autocomplete="email" value="enquiries@thescenicinn.co.uk" required></label>
+    <label class="field">Password<input type="password" id="setup-pass" autocomplete="new-password" required></label>
+    <button type="submit" class="btn btn-primary" id="setup-btn">Create login</button>
+    <p class="error" id="setup-error" hidden></p>
+  </form>
+  <p><button type="button" class="link" id="show-login">Back to sign in</button></p>
+</section>
+
+<!-- DASHBOARD -->
+<div id="dash-view" hidden>
+  <header class="bar">
+    <img src="logo.png" alt="The Scenic Inn">
+    <div class="grow"></div>
+    <span class="updated" id="updated"></span>
+    <button type="button" class="btn btn-small" id="refresh-btn">Refresh</button>
+    <button type="button" class="btn btn-small" id="logout-btn">Sign out</button>
+  </header>
+  <main>
+    <div class="tabs" id="tabs">
+      <button type="button" class="tab" data-tab="today" data-label="Today">Today</button>
+      <button type="button" class="tab" data-tab="upcoming" data-label="Upcoming">Upcoming</button>
+      <button type="button" class="tab" data-tab="past" data-label="Past">Past</button>
+      <button type="button" class="tab" data-tab="all" data-label="All">All</button>
+    </div>
+    <input type="search" class="search" id="search" placeholder="Search by name, phone or email">
+    <p class="error" id="dash-error" hidden></p>
+    <div id="list"></div>
+  </main>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+  var TOKEN_KEY = 'scenic-staff-token';
+  var REFRESH_MS = 60 * 1000;
+  var bookings = [], tab = 'today', openId = null, timer = null, firstLoad = true, knownIds = {};
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null && text !== '') e.textContent = text; return e; }
+  function show(view) { ['login-view', 'setup-view', 'dash-view'].forEach(function (v) { $(v).hidden = v !== view; }); }
+  function token() { try { return localStorage.getItem(TOKEN_KEY); } catch (e) { return null; } }
+  function setToken(t) { try { if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+  function showError(id, msg) { $(id).textContent = msg || ''; $(id).hidden = !msg; }
+
+  function api(path, opts) {
+    opts = opts || {};
+    var headers = { 'Content-Type': 'application/json' };
+    if (token()) headers.Authorization = 'Bearer ' + token();
+    return fetch(SCENIC_API + path, { method: opts.method || 'GET', headers: headers, body: opts.body ? JSON.stringify(opts.body) : undefined })
+      .then(function (r) {
+        return r.json().catch(function () { return {}; }).then(function (data) {
+          if (r.status === 401 && path.indexOf('/auth/') !== 0) { signOut('Please sign in again.'); throw new Error('signed-out'); }
+          if (!r.ok || data.success === false) throw new Error(data.message || ('Error ' + r.status));
+          return data;
+        });
+      });
+  }
+
+  // ---------- dates ----------
+  var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var DOW_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function ymd(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function today() { return ymd(new Date()); }
+  function bDate(b) { return String(b.date || '').slice(0, 10); }
+  function bTime(b) { return String(b.time || '').slice(0, 5); }
+  function parseYmd(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function niceTime(t) { if (!t) return ''; var p = t.split(':'), h = +p[0]; return (h % 12 || 12) + ':' + p[1] + (h >= 12 ? 'pm' : 'am'); }
+  function dayLabel(s) {
+    if (!s) return 'No date';
+    var t = today(), d = parseYmd(s), tm = new Date(); tm.setDate(tm.getDate() + 1);
+    var base = DOW_LONG[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '');
+    if (s === t) return 'Today · ' + base;
+    if (s === ymd(tm)) return 'Tomorrow · ' + base;
+    return base;
+  }
+  function ago(ts) {
+    var m = Math.round((Date.now() - new Date(ts).getTime()) / 60000);
+    if (isNaN(m)) return '';
+    if (m < 1) return 'just now'; if (m < 60) return m + ' min ago';
+    var h = Math.round(m / 60); if (h < 24) return h + ' hr ago';
+    return Math.round(h / 24) + ' days ago';
+  }
+
+  // ---------- booking helpers ----------
+  function people(b) { return Array.isArray(b.preorder) ? b.preorder : []; }
+  function isBuffet(b) { return b.experience_id === 'buffet'; }
+  function menuName(b) { var m = /Menu: ([^.]+)/.exec(b.special_requests || ''); return m ? m[1] : (isBuffet(b) ? 'Buffet' : ''); }
+  function isNew(b) { return (b.status || 'pending') === 'pending' && Date.now() - new Date(b.created_at).getTime() < 24 * 3600 * 1000; }
+  function itemName(i) { return i.item_name || i.name || (i.menu_item_id ? 'Menu item #' + i.menu_item_id : 'Item'); }
+
+  function inTab(b) {
+    var d = bDate(b), t = today();
+    if (tab === 'today') return d === t;
+    if (tab === 'upcoming') return d >= t;
+    if (tab === 'past') return d < t;
+    return true;
+  }
+  function matches(b, q) {
+    if (!q) return true;
+    var hay = [b.first_name, b.last_name, b.phone, b.email, b.booking_reference].join(' ').toLowerCase();
+    return hay.indexOf(q.toLowerCase()) !== -1;
+  }
+
+  // ---------- rendering ----------
+  function render() {
+    var q = $('search').value.trim();
+    var t = today();
+    var counts = { today: 0, upcoming: 0, past: 0, all: bookings.length };
+    bookings.forEach(function (b) { var d = bDate(b); if (d === t) counts.today++; if (d >= t) counts.upcoming++; if (d < t) counts.past++; });
+    document.querySelectorAll('.tab').forEach(function (btn) {
+      var k = btn.dataset.tab;
+      btn.setAttribute('aria-pressed', k === tab ? 'true' : 'false');
+      btn.textContent = btn.dataset.label;
+      btn.appendChild(el('span', 'count', String(counts[k])));
+    });
+
+    var list = bookings.filter(function (b) { return inTab(b) && matches(b, q); });
+    var asc = tab !== 'past' && tab !== 'all';
+    list.sort(function (a, z) {
+      var x = bDate(a) + bTime(a), y = bDate(z) + bTime(z);
+      return asc ? (x < y ? -1 : x > y ? 1 : 0) : (x > y ? -1 : x < y ? 1 : 0);
+    });
+
+    var box = $('list'); box.innerHTML = '';
+    if (!list.length) {
+      box.appendChild(el('p', 'empty', q ? 'No bookings match that search.' : (tab === 'today' ? 'No bookings for today.' : 'Nothing here yet.')));
+      return;
+    }
+    var lastDay = null;
+    list.forEach(function (b) {
+      var d = bDate(b);
+      if (d !== lastDay) { box.appendChild(el('h2', 'day', dayLabel(d))); lastDay = d; }
+      box.appendChild(card(b));
+    });
+  }
+
+  function card(b) {
+    var status = b.status || 'pending';
+    var c = el('article', 'card' + (isNew(b) ? ' is-new' : '') + (status === 'cancelled' ? ' cancelled' : ''));
+    c.dataset.id = b.id;
+
+    var sum = el('button', 'summary'); sum.type = 'button';
+    var when = el('div', 'when', niceTime(bTime(b)));
+    var dd = parseYmd(bDate(b) || today());
+    when.appendChild(el('small', '', DOW[dd.getDay()] + ' ' + dd.getDate() + ' ' + MON[dd.getMonth()]));
+    var who = el('div', 'who');
+    who.appendChild(el('strong', '', ((b.first_name || '') + ' ' + (b.last_name || '')).trim() || 'No name'));
+    var bits = [b.party_size + (b.party_size == 1 ? ' guest' : ' guests')];
+    if (menuName(b)) bits.push(menuName(b));
+    if (people(b).length && !isBuffet(b)) bits.push('preorder');
+    who.appendChild(el('span', 'sub', bits.join(' · ')));
+    var pills = el('div', 'pills');
+    if (isNew(b)) pills.appendChild(el('span', 'pill new', 'New'));
+    pills.appendChild(el('span', 'pill ' + status, status));
+    sum.appendChild(when); sum.appendChild(who); sum.appendChild(pills);
+    sum.addEventListener('click', function () { openId = openId === b.id ? null : b.id; render(); });
+    c.appendChild(sum);
+
+    if (openId === b.id) c.appendChild(details(b));
+    return c;
+  }
+
+  function details(b) {
+    var box = el('div', 'details');
+
+    var ph = el('div', 'print-head');
+    var logo = el('img'); logo.src = 'logo.png'; logo.alt = 'The Scenic Inn';
+    ph.appendChild(logo);
+    ph.appendChild(el('strong', '', 'Kitchen order · ' + dayLabel(bDate(b)).replace(/^(Today|Tomorrow) · /, '') + ' at ' + niceTime(bTime(b))));
+    box.appendChild(ph);
+
+    var meta = el('div', 'meta');
+    function m(label, node) { var d = el('div'); d.appendChild(el('span', '', label)); d.appendChild(typeof node === 'string' ? document.createTextNode(node) : node); meta.appendChild(d); }
+    m('Name', ((b.first_name || '') + ' ' + (b.last_name || '')).trim() || '-');
+    m('Guests', String(b.party_size || '-'));
+    if (b.phone) { var a = el('a', '', b.phone); a.href = 'tel:' + b.phone.replace(/\s+/g, ''); m('Phone', a); }
+    if (b.email) { var e = el('a', '', b.email); e.href = 'mailto:' + b.email; m('Email', e); }
+    m('Received', ago(b.created_at) || '-');
+    if (b.booking_reference) m('Reference', b.booking_reference);
+    box.appendChild(meta);
+
+    if (b.special_requests) box.appendChild(el('p', 'requests', b.special_requests));
+
+    var ppl = people(b);
+    if (isBuffet(b)) {
+      var p0 = ppl[0] || {};
+      box.appendChild(el('div', 'course-h', 'BUFFET FOR ' + b.party_size));
+      var ul = el('ul', 'buffet');
+      (p0.items || []).forEach(function (i) { ul.appendChild(el('li', '', itemName(i))); });
+      if (!(p0.items || []).length) ul.appendChild(el('li', '', 'To be chosen by phone'));
+      box.appendChild(ul);
+      if (p0.special_instructions) box.appendChild(el('p', 'requests', 'Dietary needs: ' + p0.special_instructions));
+    } else if (ppl.length) {
+      [['starter', 'STARTERS'], ['main', 'MAINS'], ['dessert', 'DESSERTS']].forEach(function (c) {
+        var groups = {}, order = {};
+        ppl.forEach(function (p) {
+          var it = (p.items || []).filter(function (i) { return i.course_type === c[0]; })[0];
+          var name = it ? itemName(it) : (c[0] === 'main' ? 'NOT CHOSEN YET' : null);
+          if (!name) return;
+          (groups[name] = groups[name] || []).push(p);
+          var o = it && typeof it.menu_order === 'number' ? it.menu_order : (name === 'NOT CHOSEN YET' ? 99999 : 9999);
+          order[name] = Math.min(order[name] == null ? Infinity : order[name], o);
+        });
+        var names = Object.keys(groups).sort(function (x, y) { return order[x] - order[y] || x.localeCompare(y); });
+        if (!names.length) return;
+        var total = names.reduce(function (a, n) { return a + groups[n].length; }, 0);
+        box.appendChild(el('div', 'course-h', c[1] + '  ' + total));
+        names.forEach(function (n) {
+          box.appendChild(el('div', 'dish', groups[n].length + ' x ' + n));
+          groups[n].forEach(function (p) {
+            var row = el('div', 'guest');
+            row.appendChild(el('span', 'gname', p.person_name || ('Guest ' + p.person_number)));
+            var side = c[0] === 'main' ? (p.items || []).filter(function (i) { return i.course_type === 'side'; })[0] : null;
+            row.appendChild(el('span', '', side ? 'Side: ' + itemName(side) : ''));
+            row.appendChild(el('span', 'gnote', p.special_instructions || ''));
+            box.appendChild(row);
+          });
+        });
+      });
+    }
+
+    var acts = el('div', 'actions');
+    function act(label, cls, fn) { var x = el('button', 'btn btn-small ' + cls, label); x.type = 'button'; x.addEventListener('click', fn); acts.appendChild(x); }
+    var st = b.status || 'pending';
+    if (st !== 'confirmed') act('Mark confirmed', 'ok', function () { setStatus(b, 'confirmed'); });
+    if (st !== 'pending') act('Mark pending', '', function () { setStatus(b, 'pending'); });
+    if (st !== 'cancelled') act('Cancelled', 'cancel', function () { if (confirm('Mark this booking as cancelled?')) setStatus(b, 'cancelled'); });
+    act('Print', '', function () { printBooking(b); });
+    box.appendChild(acts);
+    return box;
+  }
+
+  function printBooking(b) {
+    var c = document.querySelector('.card[data-id="' + b.id + '"]');
+    if (!c) return;
+    c.classList.add('printing');
+    window.print();
+    setTimeout(function () { c.classList.remove('printing'); }, 500);
+  }
+
+  function setStatus(b, status) {
+    api('/admin/bookings/' + b.id + '/status', { method: 'PUT', body: { status: status } })
+      .then(function () { b.status = status; render(); })
+      .catch(function (e) { if (e.message !== 'signed-out') alert('Couldn’t update the booking: ' + e.message); });
+  }
+
+  // ---------- loading ----------
+  function load() {
+    return api('/admin/bookings?limit=500').then(function (data) {
+      var list = data.data || [];
+      if (!firstLoad) {
+        var fresh = list.filter(function (b) { return !knownIds[b.id]; });
+        if (fresh.length && navigator.vibrate) navigator.vibrate(200);
+      }
+      list.forEach(function (b) { knownIds[b.id] = true; });
+      firstLoad = false;
+      bookings = list;
+      showError('dash-error', '');
+      $('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      render();
+    }).catch(function (e) {
+      if (e.message !== 'signed-out') showError('dash-error', 'Couldn’t load bookings (' + e.message + '). It will try again shortly.');
+    });
+  }
+  function startDashboard() {
+    show('dash-view');
+    load();
+    clearInterval(timer);
+    timer = setInterval(load, REFRESH_MS);
+  }
+  function signOut(msg) {
+    clearInterval(timer);
+    setToken(null); bookings = []; knownIds = {}; firstLoad = true; openId = null;
+    show('login-view');
+    showError('login-error', msg || '');
+  }
+
+  // ---------- events ----------
+  $('login-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var u = $('login-user').value.trim(), p = $('login-pass').value;
+    if (!u || !p) { showError('login-error', 'Enter your username and password.'); return; }
+    $('login-btn').disabled = true; showError('login-error', '');
+    api('/auth/login', { method: 'POST', body: { username: u, password: p, rememberMe: $('login-remember').checked } })
+      .then(function (data) { setToken(data.token); $('login-pass').value = ''; startDashboard(); })
+      .catch(function (err) { showError('login-error', err.message === 'Failed to fetch' ? 'Can’t reach the booking system. Check the internet connection.' : err.message); })
+      .then(function () { $('login-btn').disabled = false; });
+  });
+
+  $('setup-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var body = { secret: $('setup-secret').value, username: $('setup-user').value.trim(), email: $('setup-email').value.trim(), password: $('setup-pass').value };
+    if (!body.secret || !body.username || !body.email || !body.password) { showError('setup-error', 'Fill in every box.'); return; }
+    $('setup-btn').disabled = true; showError('setup-error', '');
+    api('/auth/create-admin', { method: 'POST', body: body })
+      .then(function () { return api('/auth/login', { method: 'POST', body: { username: body.username, password: body.password, rememberMe: true } }); })
+      .then(function (data) { setToken(data.token); startDashboard(); })
+      .catch(function (err) { showError('setup-error', err.message); })
+      .then(function () { $('setup-btn').disabled = false; });
+  });
+
+  $('show-setup').addEventListener('click', function () { show('setup-view'); });
+  $('show-login').addEventListener('click', function () { show('login-view'); });
+  $('logout-btn').addEventListener('click', function () { signOut(); });
+  $('refresh-btn').addEventListener('click', load);
+  $('search').addEventListener('input', render);
+  $('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    tab = b.dataset.tab; openId = null; render();
+  });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && token() && !$('dash-view').hidden) load(); });
+
+  if (token()) startDashboard(); else show('login-view');
+})();
+</script>
+</body>
+</html>

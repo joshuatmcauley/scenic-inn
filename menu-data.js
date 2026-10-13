@@ -205,31 +205,27 @@ var MENUS = {
   sunday: {
     label: 'Sunday lunch',
     when: 'Sunday, 12pm to 5pm',
-    note: 'One course £18.95, two courses £22.95, three courses £26.95.', // [CHECK: prices from the old booking system]
+    note: 'One course £18.95, two courses £22.95, three courses £26.95. Some dishes can be adapted to suit allergen needs, so please ask your server.',
+    showAllergens: true,
     setPrice: { 1: 18.95, 2: 22.95, 3: 26.95 },
     minCourses: 1,
     days: [0], times: ['12:00', '16:30'],
     photos: [{ src: 'diningroom.jpg', alt: 'The restaurant dining room set for lunch' }],
     sections: [
       section('Starters', 'starter', [
-        item('Soup of the day', 'Wheaten bread'),
-        item('Garlic mushrooms', 'Breaded mushrooms, salad garnish, garlic mayo'),
-        item('Prawn cocktail', 'Prawns, salad, Marie Rose sauce, wheaten bread'),
-        item('Chicken strippers', 'Chinese seasoned battered chicken, salad garnish, dip'),
-        item('Egg mayo', 'Salad, paprika')
+        item('Vegetable broth', 'With Guinness wheaten and salted butter', null, 'G D S'),
+        item('Prawn, mango and red pepper salad', '', null, 'C'),
+        item('Deviled eggs', 'Filled with Dijon, chive and paprika, on rocket and pickled shallot', null, 'E M D'),
+        item('Salt and chilli chicken strips', 'With peppers and onions, on rocket with garlic aioli', null, 'G E M')
       ]),
       section('Main course', 'main', [
-        item('Traditional turkey, ham and stuffing', 'Mash, roast potato, chef’s vegetables, sauce'),
-        item('Roast beef and Yorkshire pudding', 'Mash, roast potato, chef’s vegetables, sauce'),
-        item('Gammon and pineapple', 'Mash, roast potato, chef’s vegetables, sauce'),
-        item('Pan fried chicken escalope', 'Mash, roast potato, chef’s vegetables, sauce')
+        item('Daube of beef', 'Served with Yorkshire pudding and red wine gravy', null, 'G D'),
+        item('Turkey and ham', 'Served with sage and onion stuffing and red wine gravy', null, 'G'),
+        item('Chicken supreme', 'Served with crispy onions and red wine gravy', null, 'G'),
+        item('Fillet of salmon', 'Served with fried capers and lemon and chive cream', null, 'F D S')
       ]),
-      section('Desserts', 'dessert', [
-        item('Sherry trifle', 'Fresh cream, sprinkles'),
-        item('Sticky toffee pudding', 'Fresh cream or ice cream'),
-        item('Chef’s cheesecake', 'Ice cream or fresh cream'),
-        item('Apple crumble', 'Custard'),
-        item('Brownie sundae', 'Vanilla ice cream, chocolate ice cream, brownie pieces, fresh cream')
+      section('Dessert', 'dessert', [
+        item('Dessert', 'Please see your server for our delicious dessert options')
       ])
     ]
   },
