@@ -1,1 +1,15 @@
-v
+# Files that are part of the backend or the repo, not the public website
+worker.js
+node_modules
+.wrangler
+wrangler.jsonc
+package.json
+package-lock.json
+README.md
+TESTING.md
+env.example
+download
+.git
+.gitignore
+.assetsignore
+.dev.vars
