@@ -42,39 +42,42 @@ var MENUS = {
     label: 'Lunch',
     when: 'Monday to Saturday, 12pm to 4:45pm',
     days: [1, 2, 3, 4, 5, 6], times: ['12:00', '16:30'],
-    note: 'Dishes marked * come complete. Everything else comes with a side of your choice.',
+    note: 'Dishes marked * do not include a side. Other mains come with a side of your choice, except the lasagne. Sides are £3.95. Any food allergies, please alert your server.',
+    showAllergens: true,
+    sides: ['Chips', 'Garlic chips', 'Chilli and sour cream chips', 'Skinny fries', 'Salt n chilli chips', 'Mash', 'Champ', 'House salad', 'Rocket and balsamic salad', 'Lemon rice'],
     photos: [
       { src: 'prawns-toast.jpg', alt: 'King prawns in a garlic cream on toasted ciabatta' },
       { src: 'garlic-bread.jpg', alt: 'Bacon and cheddar garlic bread with rocket and aioli' }
     ],
     sections: [
-      section('Light bites', 'starter', [
-        item('Soup of the day', 'Wheaten bread', 5.95),
-        item('Brunch', 'Two sausages, two bacon, beans, egg, chips', 9.95),
-        item('Ham and cheese melt', 'Ham, cheese, sourdough, slaw', 7.95, '', { extra: 'Add soup or fries £3' }),
-        item('Chicken and bacon club', 'Lettuce, tomato, mayo, sourdough', 7.95, '', { extra: 'Add soup or fries £3' })
-      ]),
+      section('Sandwiches, wraps and toasties', 'main', [
+        item('Roast beef', 'Rocket, sunblush tomato, scallion, mustard mayo', 7.95),
+        item('Turkey, ham and stuffing', 'Cranberry, rocket', 7.95),
+        item('Prawn', 'Guacamole, chives, rocket', 7.95),
+        item('Sunblush tomato', 'Pesto, parmesan, rocket', 7.95)
+      ], 'Served with side salad, coleslaw or tortilla chips. Add soup or fries for £3.'),
       section('Main meals', 'main', [
-        item('Chicken goujons', 'Panko breadcrumbs, dip, side', 13.95),
-        item('Chicken strippers', '', 14.95),
-        item('House chicken curry', 'Saffron rice, naan', 14.95, '', { complete: true }),
-        item('Chilli chicken penne', 'Garlic bread, onion crumb', 14.95, '', { complete: true }),
-        item('Chicken Caesar salad', 'Romaine, bacon, parmesan, soda bread croutons', 13.95, '', { complete: true }),
-        item('Honey chilli chicken pitta', 'Crispy chicken, onions, peppers, honey chilli sauce', 14.95),
-        item('Steak sandwich', '8oz steak, onion marmalade, onion rings, pepper sauce', 18.95),
-        item('Gammon and pineapple', 'Peas, garnish', 14.95),
-        item('Seafood chowder', 'Garlic ciabatta', 15.95, '', { complete: true }),
-        item('Battered cod', 'Peas, tartare, lemon', 15.95)
+        item('Chicken wings', '12 wings, hot sauce, rocket, blue cheese mayo, scallion, pickled shallot', 8.95, 'E D M S', { complete: true }),
+        item('Soup of the day', 'Guinness wheaten, salted butter', 5.95, '', { complete: true }),
+        item('Caesar salad', 'Bacon, parmesan, garlic croutons, baby gem, dressing', 7.95, 'E G SY D', { complete: true, extra: 'Add grilled chicken £2' }),
+        item('Scenic Inn nachos', 'Tortilla chips, mozzarella, cheddar, salsa, guacamole, sour cream, jalapeños, scallions', 7.95, 'D', { complete: true, extra: 'Add chilli mince £2' }),
+        item('Seafood chowder', 'Prawns, salmon, haddock, coley, peas, scallion, carrot, white wine cream, Guinness wheaten, dulce butter', 14.95, 'D F C G', { complete: true }),
+        item('Chicken stack', 'Pan roasted chicken, champ, crispy onions, pepper sauce', 15.95, 'D G', { complete: true }),
+        item('Beer battered Atlantic haddock', 'Haddock, pea purée, tartare, curry sauce, lemon, triple cooked chips', 16.95, 'G F E M', { complete: true }),
+        item('Scenic fry', 'Bacon, black pudding, pork sausage, fried egg, potato bread, soda bread, beans, grilled mushroom, grilled tomato', 9.95, 'G E', { complete: true }),
+        item('Seafood linguine', 'Prawns, salmon, haddock, coley, peas, scallion, carrot, white wine cream, garlic ciabatta', 15.95, 'G F M S', { complete: true }),
+        item('Chilli chicken, beef or veg pasta', 'Onions, peppers, penne, chilli, white wine cream, crispy onions, garlic croutons', 14.95, '', { complete: true, extra: 'Chicken or veg £14.95, beef £15.95' }),
+        item('Chicken goujons', 'Panko breaded chicken, rocket, pickled shallot, dip, side', 14.95, 'G E D SY', { side: true }),
+        item('Chicken strippers', 'Chinese glaze chicken goujons, dip, side', 15.95, 'G E D SY', { side: true }),
+        item('SmokeHouse hunters chicken', 'Chicken, bacon, BBQ sauce, smoked applewood cheese, charred corn, Cajun slaw', 15.95, 'SY D E M', { side: true }),
+        item('Brolly’s beef burger', '2 x 4oz Brolly’s beef burgers, smoked applewood cheddar, bacon, salsa, onion ring, rocket, slaw', 15.95, 'E D G M', { side: true }),
+        item('Vegan beetroot burger', 'Beetroot burger, vegan cheese, vegan sriracha mayo, rocket, salsa', 15.95, 'G', { side: true }),
+        item('Scenic steak ciabatta', 'Steak strips, mushroom, onions, rocket, crispy onions, pepper sauce', 18.95, 'G D', { side: true }),
+        item('Maple glazed gammon', 'Gammon, rocket, pickled shallot, side', 17.95, '', { side: true }),
+        item('Brolly’s beef lasagne', 'Salad, coleslaw, garlic ciabatta', 16.95, 'G D E M'),
+        item('8oz Brolly’s sirloin steak', 'Roast ½ tomato, field mushroom, crispy onions, pepper sauce', 20.95, 'G D', { side: true })
       ]),
-      section('Loaded fries', 'main', [
-        item('Braised beef', 'Braised beef, bourguignon sauce, fries, pickled red onion, cheese', 14.95, '', { complete: true }),
-        item('Salt and chilli chicken', 'Crispy shredded chicken, fries, onions, peppers, curry mayo', 14.95, '', { complete: true })
-      ]),
-      section('Burgers', 'main', [
-        item('Scenic burger', '6oz beef burger, cheddar and smoked cheese, onion marmalade, onion ring, lettuce, tomato', 12.95),
-        item('Chicken burger', 'Buttermilk chicken, lettuce, tomato, chipotle mayo', 14.95)
-      ]),
-      textSection('Sides, all £3.95', 'Chips, garlic chips, chilli sour chips, fries, champ, sweet potato fries, salad')
+      textSection('Sides, all £3.95', 'Chips, garlic chips, chilli and sour cream chips, skinny fries, salt n chilli chips, mash, champ, house salad, rocket and balsamic salad, lemon rice')
     ]
   },
 

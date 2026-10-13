@@ -442,3 +442,12 @@ html.is-loading { overflow: hidden; }
 /* Hero: the full logo in place of the title text */
 .hero h1.hero-logo { margin: 0; line-height: 0; }
 .hero h1.hero-logo img { width: 100%; max-width: 560px; height: auto; margin-left: -1.5%; }
+
+/* Preorder: compact course dropdowns */
+.course-field { max-width: 520px; }
+.course-field select { width: 100%; }
+.dish-select.flagged { border-color: var(--rust); border-style: dashed; }
+.dish-info { margin-top: 8px; max-width: 520px; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.dish-warn { margin-top: 6px; font-size: 14px; font-weight: 600; color: var(--rust); }
+.dish-info:empty, .dish-warn:empty { display: none; }
+#courses .course { margin-top: 24px; }
