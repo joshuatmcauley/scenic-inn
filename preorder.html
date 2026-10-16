@@ -107,7 +107,14 @@
       <div class="callout buffet-empty" id="buffet-empty" hidden>
         <p>We’re putting the buffet menu online. Send your booking now and we’ll call you to choose the food, or call us on <a href="tel:+442820751260">028 2075 1260</a>.</p>
       </div>
-      <label class="field field-full">Dietary needs in the group <span class="hint">e.g. 3 vegetarians, 1 coeliac, a nut allergy</span><textarea id="buffet-notes" rows="3"></textarea></label>
+      <div class="allergy-plates" id="allergy-box">
+        <h3 class="po-h3">Anyone with an allergy?</h3>
+        <p class="buffet-intro">If someone can’t eat from the buffet, add them here and the kitchen will make them their own plate.</p>
+        <div id="allergy-plates"></div>
+        <button type="button" class="btn btn-outline" id="add-plate">+ Add someone with an allergy</button>
+        <p class="error" id="plates-error" hidden></p>
+      </div>
+      <label class="field field-full">Anything else the kitchen should know? <span class="hint">e.g. 3 vegetarians</span><textarea id="buffet-notes" rows="3"></textarea></label>
     </div>
 
     <div class="po-work" id="meals-work">
@@ -173,6 +180,10 @@
     <div id="buffet-review" hidden>
       <h3 class="po-h3">Buffet</h3>
       <ul class="buffet-list" id="buffet-list"></ul>
+      <div id="plates-review" hidden>
+        <h3 class="po-h3">Allergy plates</h3>
+        <ul class="buffet-list" id="plates-list"></ul>
+      </div>
       <p id="buffet-review-notes"></p>
     </div>
 

@@ -419,6 +419,14 @@ p { margin: 0; }
 .buffet-empty { max-width: none; margin-top: 24px; }
 .buffet-empty p { margin: 0; }
 #buffet-work .field-full { margin-top: 32px; }
+.allergy-plates { margin-top: 8px; }
+.plate { margin-bottom: 16px; padding: 18px 18px 20px; border: 1px solid var(--line); border-radius: 2px; background: var(--paper-3); }
+.plate-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px; }
+.plate-head strong { font-size: 17px; }
+.plate-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
+.plate-fields .field { margin: 0; }
+.plate-sub { margin: 16px 0 8px; font-weight: 600; font-size: 15px; }
+#plates-error { display: block; margin-top: 12px; }
 .po-steps b { font-weight: inherit; }
 
 /* ===== Loading screen ===== */

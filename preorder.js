@@ -24,7 +24,7 @@ function freshState() {
     type: TYPE, style: TYPE === 'event' ? 'buffet' : null, eventType: '',
     step: 1, menuId: null, date: '', time: '', occasion: '', requests: '',
     organiser: { first: '', last: '', email: '', phone: '' },
-    guests: [], current: 0, buffet: [], buffetNotes: ''
+    guests: [], current: 0, buffet: [], buffetNotes: '', allergyPlates: []
   };
 }
 var state = load() || freshState();
@@ -201,7 +201,7 @@ function renderStyleCards() {
   var box = $('style-cards'); box.innerHTML = '';
   [
     { id: 'meals', name: 'Everyone chooses a meal', when: 'Each guest picks their own dishes from the menu ahead of time', price: 'Priced by the menu you choose' },
-    { id: 'buffet', name: 'Buffet', when: 'Pick up to ' + BUFFET.maxChoices + ' dishes and we’ll lay them out for the whole group', price: BUFFET.pricePerHead ? formatPrice(BUFFET.pricePerHead) + ' per person' : 'Price confirmed when we call you' }
+    { id: 'buffet', name: 'Buffet', when: (BUFFET.maxChoices ? 'Pick up to ' + BUFFET.maxChoices + ' dishes' : 'Pick the dishes you’d like') + ' and we’ll lay them out for the whole group', price: BUFFET.pricePerHead ? formatPrice(BUFFET.pricePerHead) + ' per person' : 'Price confirmed when we call you' }
   ].forEach(function (o) {
     var input = h('input', { type: 'radio', name: 'po-style', value: o.id, checked: state.style === o.id });
     input.addEventListener('change', function () { state.style = o.id; save(); applyMode(); renderMenuCards(); updateDepositNote(); });
@@ -472,6 +472,11 @@ function bindStep2() {
     else prompt('Copy this link:', url);
   });
   $('buffet-notes').addEventListener('input', function () { state.buffetNotes = this.value; save(); });
+  $('add-plate').addEventListener('click', function () {
+    state.allergyPlates.push({ name: '', allergy: '', items: [] }); save(); renderPlates();
+    var inputs = $('allergy-plates').querySelectorAll('.plate:last-child input[type=text]');
+    if (inputs.length) inputs[0].focus();
+  });
   $('add-guest').addEventListener('click', function () {
     state.guests.push(blankGuest()); state.current = state.guests.length - 1;
     $('po-guests').value = state.guests.length; save(); renderGuestList(); renderEditor(); scrollEditor();
@@ -482,16 +487,17 @@ function bindStep2() {
 function renderBuffet() {
   var items = buffetItems(), max = BUFFET.maxChoices;
   $('buffet-empty').hidden = items.length > 0;
-  $('buffet-intro').textContent = items.length ? 'Choose up to ' + max + ' dishes for ' + state.guests.length + ' guests.' + (BUFFET.note ? ' ' + BUFFET.note : '') : '';
-  $('buffet-count').textContent = items.length ? state.buffet.length + ' of ' + max + ' chosen' : '';
+  $('buffet-intro').textContent = items.length ? (max ? 'Choose up to ' + max + ' dishes' : 'Choose the dishes you’d like') + ' for ' + state.guests.length + ' guests.' + (BUFFET.note ? ' ' + BUFFET.note : '') : '';
+  $('buffet-count').textContent = items.length ? state.buffet.length + (max ? ' of ' + max : '') + ' chosen' : '';
   $('buffet-notes').value = state.buffetNotes;
+  renderPlates();
   var box = $('buffet-sections'); box.innerHTML = '';
   BUFFET.sections.forEach(function (sec) {
     var fs = h('fieldset', { class: 'course' }, [h('legend', { text: sec.title })]);
     var grid = h('div', { class: 'dishes' });
     sec.items.forEach(function (it) {
       var on = state.buffet.indexOf(it.name) !== -1;
-      var cb = h('input', { type: 'checkbox', checked: on, disabled: !on && state.buffet.length >= max });
+      var cb = h('input', { type: 'checkbox', checked: on, disabled: !!max && !on && state.buffet.length >= max });
       cb.addEventListener('change', function () {
         if (this.checked) state.buffet.push(it.name); else state.buffet = state.buffet.filter(function (n) { return n !== it.name; });
         save(); renderBuffet();
@@ -502,6 +508,48 @@ function renderBuffet() {
     });
     fs.appendChild(grid); box.appendChild(fs);
   });
+}
+
+// ---------- allergy plates (made separately for one person) ----------
+function renderPlates() {
+  var box = $('allergy-plates'); box.innerHTML = '';
+  var opts = BUFFET.allergyItems || [];
+  $('allergy-box').hidden = !buffetItems().length;
+  state.allergyPlates.forEach(function (pl, i) {
+    var name = h('input', { type: 'text', value: pl.name, maxlength: 60, placeholder: 'e.g. Sarah', autocomplete: 'off' });
+    name.addEventListener('input', function () { pl.name = this.value; save(); });
+    var allergy = h('input', { type: 'text', value: pl.allergy, maxlength: 120, placeholder: 'e.g. Coeliac', autocomplete: 'off' });
+    allergy.addEventListener('input', function () { pl.allergy = this.value; save(); $('plates-error').hidden = true; });
+    var grid = h('div', { class: 'dishes' });
+    opts.forEach(function (it) {
+      var cb = h('input', { type: 'checkbox', checked: pl.items.indexOf(it.name) !== -1 });
+      cb.addEventListener('change', function () {
+        if (this.checked) pl.items.push(it.name); else pl.items = pl.items.filter(function (n) { return n !== it.name; });
+        save();
+      });
+      grid.appendChild(h('label', { class: 'dish' }, [cb,
+        h('span', { class: 'dtop' }, [h('span', { class: 'dname', text: it.name })]),
+        it.desc ? h('span', { class: 'ddesc', text: it.desc }) : null]));
+    });
+    var rm = h('button', { type: 'button', class: 'link-btn', text: 'Remove' });
+    rm.addEventListener('click', function () { state.allergyPlates.splice(i, 1); save(); renderPlates(); });
+    box.appendChild(h('div', { class: 'plate' }, [
+      h('div', { class: 'plate-head' }, [h('strong', { text: 'Allergy plate ' + (i + 1) }), rm]),
+      h('div', { class: 'plate-fields' }, [
+        h('label', { class: 'field' }, ['Their name ', h('span', { class: 'hint', text: 'Optional' }), name]),
+        h('label', { class: 'field' }, ['Allergy or need', allergy])
+      ]),
+      opts.length ? h('p', { class: 'plate-sub', text: 'Choose their food' }) : null,
+      opts.length ? grid : null
+    ]));
+  });
+  $('add-plate').textContent = state.allergyPlates.length ? '+ Add another person' : '+ Add someone with an allergy';
+}
+function platesError() {
+  for (var i = 0; i < state.allergyPlates.length; i++) {
+    if (!state.allergyPlates[i].allergy.trim()) return 'Enter the allergy for allergy plate ' + (i + 1) + ', or remove it.';
+  }
+  return '';
 }
 
 // =====================================================================
@@ -519,7 +567,12 @@ function renderReview() {
     var bl = $('buffet-list'); bl.innerHTML = '';
     if (state.buffet.length) state.buffet.forEach(function (n) { bl.appendChild(h('li', { text: n })); });
     else bl.appendChild(h('li', { text: 'To be chosen with us by phone' }));
-    $('buffet-review-notes').textContent = state.buffetNotes ? 'Dietary needs: ' + state.buffetNotes : '';
+    var pls = $('plates-list'); pls.innerHTML = '';
+    state.allergyPlates.forEach(function (pl, i) {
+      pls.appendChild(h('li', { text: (pl.name.trim() || 'Person ' + (i + 1)) + ' (' + pl.allergy.trim() + '): ' + (pl.items.join(', ') || 'we’ll check with you') }));
+    });
+    $('plates-review').hidden = !state.allergyPlates.length;
+    $('buffet-review-notes').textContent = state.buffetNotes ? 'Notes for the kitchen: ' + state.buffetNotes : '';
     $('total-line').parentNode.hidden = !BUFFET.pricePerHead;
     $('est-total').textContent = BUFFET.pricePerHead ? money(BUFFET.pricePerHead * state.guests.length) : '';
     return;
@@ -586,7 +639,8 @@ function payload() {
     if (state.eventType) bits.push('Event: ' + state.eventType);
     if (state.occasion) bits.push('Occasion: ' + state.occasion);
     if (!state.buffet.length) bits.push('Buffet to be chosen by phone');
-    if (state.buffetNotes) bits.push('Dietary needs: ' + state.buffetNotes);
+    if (state.allergyPlates.length) bits.push(state.allergyPlates.length + ' allergy plate' + (state.allergyPlates.length === 1 ? '' : 's'));
+    if (state.buffetNotes) bits.push('Notes: ' + state.buffetNotes);
     if (depositDue()) bits.push('Deposit of ' + formatPrice(depositDue()) + ' required, not yet paid');
     if (state.requests) bits.push(state.requests);
     return {
@@ -595,8 +649,13 @@ function payload() {
         date: state.date, time: state.time, partySize: state.guests.length, experience_id: 'buffet',
         menu_name: 'Buffet', specialRequests: bits.join('. '), source: 'website-' + state.type
       },
-      preorderData: state.buffet.length ? [{ person_number: 1, person_name: 'Buffet', special_instructions: state.buffetNotes,
-        items: state.buffet.map(function (n) { return { item_name: n, quantity: state.guests.length }; }) }] : []
+      // First entry is the buffet itself; any after it are allergy plates (one person each)
+      preorderData: [{ person_number: 1, person_name: 'Buffet', special_instructions: state.buffetNotes,
+        items: state.buffet.map(function (n) { return { item_name: n, quantity: state.guests.length }; }) }]
+        .concat(state.allergyPlates.map(function (pl, i) {
+          return { person_number: i + 2, person_name: pl.name.trim() || 'Allergy plate ' + (i + 1), special_instructions: 'Allergy: ' + pl.allergy.trim(),
+            items: pl.items.map(function (n) { return { course_type: 'allergy', item_name: n, quantity: 1 }; }) };
+        }))
     };
   }
   var m = menu();
@@ -630,7 +689,12 @@ function plainText() {
   if (state.occasion) lines.push('Occasion: ' + state.occasion);
   if (state.requests) lines.push('Notes: ' + state.requests);
   lines.push('');
-  if (isBuffet()) { lines.push('Buffet: ' + (state.buffet.join(', ') || 'to be chosen by phone')); if (state.buffetNotes) lines.push('Dietary needs: ' + state.buffetNotes); return lines.join('\n'); }
+  if (isBuffet()) {
+    lines.push('Buffet: ' + (state.buffet.join(', ') || 'to be chosen by phone'));
+    state.allergyPlates.forEach(function (pl, i) { lines.push('Allergy plate: ' + (pl.name.trim() || 'Person ' + (i + 1)) + ' (' + pl.allergy.trim() + '): ' + (pl.items.join(', ') || 'to discuss')); });
+    if (state.buffetNotes) lines.push('Notes: ' + state.buffetNotes);
+    return lines.join('\n');
+  }
   p.preorderData.forEach(function (g) {
     lines.push(g.person_number + '. ' + g.person_name + ': ' + g.items.map(function (i) { return i.item_name; }).join(' / ') + (g.special_instructions ? ' (' + g.special_instructions + ')' : ''));
   });
@@ -718,11 +782,25 @@ function reset() {
   } catch (e) {}
   if (params.get('menu') && MENUS[params.get('menu')] && !state.menuId) { state.menuId = params.get('menu'); if (state.type === 'party' && !state.style) state.style = 'meals'; }
   if (state.sent) { var keep = state.organiser; state = freshState(); state.organiser = keep; }
+  // Older saved progress: add allergy plates, keep only dishes still on the buffet (and within the limit)
+  state.allergyPlates = state.allergyPlates || [];
+  (function () {
+    var names = buffetItems().map(function (i) { return i.name; });
+    state.buffet = (state.buffet || []).filter(function (n) { return names.indexOf(n) !== -1; });
+    if (BUFFET.maxChoices) state.buffet = state.buffet.slice(0, BUFFET.maxChoices);
+  })();
   // Arriving from the menu bar's "Book for a buffet" link
   if (state.type === 'party' && params.get('style') === 'buffet') state.style = 'buffet';
 
   bindStep1(); bindStep2();
-  document.querySelectorAll('[data-po-go]').forEach(function (b) { b.addEventListener('click', function () { go(Number(b.getAttribute('data-po-go'))); }); });
+  document.querySelectorAll('[data-po-go]').forEach(function (b) { b.addEventListener('click', function () {
+    var to = Number(b.getAttribute('data-po-go'));
+    if (to === 3 && state.step === 2 && isBuffet()) {
+      var err = platesError();
+      if (err) { $('plates-error').textContent = err; $('plates-error').hidden = false; $('plates-error').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+    }
+    go(to);
+  }); });
   $('send-btn').addEventListener('click', send);
   $('start-over').addEventListener('click', function () { if (confirm('Clear this preorder and start again?')) reset(); });
   $('new-preorder').addEventListener('click', reset);

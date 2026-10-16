@@ -7,6 +7,7 @@
 //   POST /api/auth/create-admin         create a staff login (needs SETUP_CODE)
 //   GET  /api/admin/bookings            bookings for the staff dashboard
 //   PUT  /api/admin/bookings/:id/status mark confirmed / pending / cancelled
+//   DELETE /api/admin/bookings/:id      delete a booking for good
 //   GET  /api/health                    quick check that it's running
 //
 // Settings (Cloudflare → this Worker → Settings → Variables and Secrets):
@@ -47,6 +48,8 @@ export default {
         if (path === '/api/admin/bookings' && method === 'GET') return await listBookings(env, url);
         const m = /^\/api\/admin\/bookings\/(\d+)\/status$/.exec(path);
         if (m && method === 'PUT') return await updateStatus(request, env, Number(m[1]));
+        const d = /^\/api\/admin\/bookings\/(\d+)$/.exec(path);
+        if (d && method === 'DELETE') return await deleteBooking(env, Number(d[1]));
       }
       return json({ success: false, message: 'Not found' }, 404);
     } catch (err) {
@@ -101,6 +104,8 @@ async function ensureSchema(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS rate_events (kind TEXT NOT NULL, key TEXT NOT NULL, at INTEGER NOT NULL)'),
     env.DB.prepare('CREATE INDEX IF NOT EXISTS rate_events_lookup ON rate_events (kind, key, at)')
   ]);
+  // Remembers that the "your booking is confirmed" email went out (so it is only sent once)
+  try { await env.DB.prepare('ALTER TABLE bookings ADD COLUMN confirmation_emailed_at TEXT').run(); } catch (e) { /* column already exists */ }
   schemaReady = true;
 }
 
@@ -284,10 +289,23 @@ async function updateStatus(request, env, id) {
   const body = await readJson(request);
   const status = str(body.status, 20);
   if (STATUSES.indexOf(status) === -1) return json({ success: false, message: 'Unknown status.' }, 400);
-  const res = await env.DB.prepare('UPDATE bookings SET status = ?, updated_at = ? WHERE id = ?')
+  const before = await env.DB.prepare('SELECT * FROM bookings WHERE id = ?').bind(id).first();
+  if (!before) return json({ success: false, message: 'Booking not found.' }, 404);
+  await env.DB.prepare('UPDATE bookings SET status = ?, updated_at = ? WHERE id = ?')
     .bind(status, new Date().toISOString(), id).run();
+
+  // Staff tapped "Mark confirmed": email the customer (once)
+  let emailStatus = 'none';
+  if (status === 'confirmed' && before.status !== 'confirmed') {
+    emailStatus = await sendConfirmedEmail(env, before);
+  }
+  return json({ success: true, message: 'Updated', emailStatus });
+}
+
+async function deleteBooking(env, id) {
+  const res = await env.DB.prepare('DELETE FROM bookings WHERE id = ?').bind(id).run();
   if (!res.meta || !res.meta.changes) return json({ success: false, message: 'Booking not found.' }, 404);
-  return json({ success: true, message: 'Updated' });
+  return json({ success: true, message: 'Deleted' });
 }
 
 // ---------------------------------------------------------------------
@@ -331,19 +349,52 @@ async function sendEmails(env, b, origin) {
     await resend(env, msg);
   }
 
-  // Confirmation to the customer (only once a verified sending address is set)
+  // "We've received it" email to the customer (only once a verified sending address is set)
   if (env.EMAIL_FROM && b.email) {
     await resend(env, {
       from, to: [b.email], reply_to: env.RESTAURANT_EMAIL || undefined,
-      subject: 'We’ve got your booking – The Scenic Inn',
+      subject: 'We’ve received your booking request – The Scenic Inn',
       html: `<div style="font-family:Arial,sans-serif;font-size:16px;color:#28221E;max-width:560px">
         <p>Hi ${esc(b.first_name)},</p>
-        <p>Thanks for booking with The Scenic Inn. Here’s what we received:</p>
-        <p><strong>${esc(when)}</strong><br>${b.party_size} guest${b.party_size === 1 ? '' : 's'}${b.menu_name ? '<br>' + esc(b.menu_name) + (isBuffet(b) ? '' : ' menu') : ''}</p>
-        <p>We’ll be in touch if we need anything else. If you need to change your booking, just reply to this email or call us on 028 2075 1260.</p>
+        <p>Thanks for booking with The Scenic Inn. We’ve received your request:</p>
+        ${bookingSummaryHtml(b, when)}
+        <p><strong>It isn’t confirmed yet.</strong> We’ll email you again as soon as a member of the team has confirmed it. If you need to change anything in the meantime, reply to this email or call us on 028 2075 1260.</p>
         <p>The Scenic Inn<br>38 Fivey Road, Armoy, BT53 8UT</p></div>`
     });
   }
+}
+
+function bookingSummaryHtml(b, when) {
+  return `<p style="background:#F4EFE4;padding:12px 14px;border-radius:4px"><strong>${esc(when)}</strong><br>${b.party_size} guest${Number(b.party_size) === 1 ? '' : 's'}${b.menu_name ? '<br>' + esc(b.menu_name) + (isBuffet(b) ? '' : ' menu') : ''}${b.booking_reference ? '<br><span style="color:#6E645C">Reference: ' + esc(b.booking_reference) + '</span>' : ''}</p>`;
+}
+
+// Sent when staff mark a booking as confirmed on the dashboard.
+// Returns: 'sent' | 'already' | 'no-email' | 'not-configured' | 'failed'
+async function sendConfirmedEmail(env, row) {
+  if (row.confirmation_emailed_at) return 'already';
+  if (!row.email) return 'no-email';
+  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) return 'not-configured';
+  const b = { ...row, preorder: row.preorder ? (safeParse(row.preorder) || []) : [] };
+  const when = `${niceDate(b.date)} at ${niceTime(b.time)}`;
+  try {
+    await resend(env, {
+      from: env.EMAIL_FROM, to: [b.email], reply_to: env.RESTAURANT_EMAIL || undefined,
+      subject: `Your booking is confirmed – ${niceDate(b.date)} at ${niceTime(b.time)}`,
+      html: `<div style="font-family:Arial,sans-serif;font-size:16px;color:#28221E;max-width:560px">
+        <p>Hi ${esc(b.first_name)},</p>
+        <p><strong>Good news: your booking at The Scenic Inn is confirmed.</strong></p>
+        ${bookingSummaryHtml(b, when)}
+        ${hasPreorder(b) ? '<p>We’ve got your food choices and they’ve been passed to the kitchen.</p>' : ''}
+        <p>If you need to change anything, or if your plans change, just reply to this email or call us on 028 2075 1260.</p>
+        <p>We look forward to seeing you.</p>
+        <p>The Scenic Inn<br>38 Fivey Road, Armoy, BT53 8UT</p></div>`
+    });
+  } catch (err) {
+    console.error('Confirmation email error:', err && err.stack || err);
+    return 'failed';
+  }
+  await env.DB.prepare('UPDATE bookings SET confirmation_emailed_at = ? WHERE id = ?').bind(new Date().toISOString(), row.id).run();
+  return 'sent';
 }
 
 function restaurantHtml(b, kind, when, origin) {
@@ -357,7 +408,9 @@ function restaurantHtml(b, kind, when, origin) {
   if (b.special_requests) html += `<p style="background:#F4EFE4;padding:10px 12px">${esc(b.special_requests)}</p>`;
   if (hasPreorder(b)) {
     html += isBuffet(b)
-      ? `<p><strong>Buffet:</strong> ${esc(((b.preorder[0] || {}).items || []).map(i => i.item_name).join(', ') || 'to be chosen by phone')}</p>`
+      ? `<p><strong>Buffet:</strong> ${esc(((b.preorder[0] || {}).items || []).map(i => i.item_name).join(', ') || 'to be chosen by phone')}</p>` +
+        b.preorder.slice(1).map(pl => `<p><strong>${/^Allergy plate/.test(pl.person_name) ? esc(pl.person_name) : 'Allergy plate, ' + esc(pl.person_name)}:</strong> <span style="color:#8E3B22">${esc((pl.special_instructions || '').replace(/^Allergy:\s*/, ''))}</span>. ${esc(pl.items.map(i => i.item_name).join(', ') || 'check with the organiser')}</p>`).join('') +
+        `<p>The kitchen order is attached as a PDF.</p>`
       : `<p>The kitchen order is attached as a PDF, with matching dishes grouped together.</p>`;
   }
   html += `<p><a href="${origin}/staff.html">Open the staff dashboard</a> to confirm it.</p></div>`;
@@ -440,7 +493,26 @@ async function kitchenPdf(env, b, origin) {
       page.drawRectangle({ x: M + 2, y: y - 1, width: 9, height: 9, borderColor: INK, borderWidth: 0.8 });
       text(n, M + 18, y, font, 12); y -= 20;
     });
-    if (p0.special_instructions) { y -= 6; wrap('Dietary needs: ' + p0.special_instructions, bold, 11, CW).forEach(l => { room(15); text(l, M, y, bold, 11, RUST); y -= 15; }); }
+    if (p0.special_instructions) { y -= 6; wrap('Notes: ' + p0.special_instructions, bold, 11, CW).forEach(l => { room(15); text(l, M, y, bold, 11, RUST); y -= 15; }); }
+
+    // Allergy plates: made separately, one per person
+    const plates = b.preorder.slice(1);
+    if (plates.length) {
+      y -= 14; room(60);
+      page.drawRectangle({ x: M, y: y - 6, width: CW, height: 20, color: INK });
+      text(`ALLERGY PLATES   ${plates.length}`, M + 8, y, bold, 11.5, rgb(1, 1, 1));
+      y -= 30;
+      plates.forEach(pl => {
+        const lines = wrap(pl.items.length ? pl.items.map(i => i.item_name).join(', ') : 'Check with the organiser', font, 11, CW - 12);
+        room(20 + lines.length * 14);
+        text(pl.person_name, M, y, bold, 12);
+        const allergy = (pl.special_instructions || '').replace(/^Allergy:\s*/, '');
+        if (allergy) text(allergy, M + 12 + bold.widthOfTextAtSize(pdfSafe(pl.person_name), 12), y, bold, 12, RUST);
+        y -= 16;
+        lines.forEach(l => { text(l, M + 12, y, font, 11); y -= 14; });
+        y -= 8;
+      });
+    }
   } else {
     [['starter', 'STARTERS'], ['main', 'MAINS'], ['dessert', 'DESSERTS']].forEach(([course, title]) => {
       const groups = groupsFor(b.preorder, course);

@@ -78,6 +78,7 @@
   .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
   .btn.ok { border-color: var(--green); color: var(--green); }
   .btn.cancel { border-color: var(--rust); color: var(--rust); }
+  .btn.delete { margin-left: auto; border-color: var(--rust); background: var(--rust); color: #fff; }
 
   .course-h { margin: 18px 0 6px; padding: 6px 10px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 700; letter-spacing: .05em; border-radius: 3px; }
   .dish { margin: 10px 0 2px; font-weight: 700; font-size: 17px; }
@@ -102,6 +103,8 @@
     .print-head { display: flex !important; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .course-h { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 50; max-width: min(92vw, 520px); padding: 14px 18px; border-radius: 8px; background: var(--ink); color: #fff; font-size: 16px; line-height: 1.35; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+  .toast.warn { background: var(--rust); }
   .print-head { display: none; }
   .print-head img { height: 54px; }
   .print-head strong { font-size: 22px; }
@@ -160,6 +163,8 @@
     <div id="list"></div>
   </main>
 </div>
+
+<div id="toast" class="toast" role="status" hidden></div>
 
 <script src="config.js"></script>
 <script>
@@ -323,7 +328,18 @@
       (p0.items || []).forEach(function (i) { ul.appendChild(el('li', '', itemName(i))); });
       if (!(p0.items || []).length) ul.appendChild(el('li', '', 'To be chosen by phone'));
       box.appendChild(ul);
-      if (p0.special_instructions) box.appendChild(el('p', 'requests', 'Dietary needs: ' + p0.special_instructions));
+      if (p0.special_instructions) box.appendChild(el('p', 'requests', 'Notes: ' + p0.special_instructions));
+      var plates = ppl.slice(1);
+      if (plates.length) {
+        box.appendChild(el('div', 'course-h', 'ALLERGY PLATES  ' + plates.length));
+        plates.forEach(function (pl) {
+          var row = el('div', 'guest');
+          row.appendChild(el('span', 'gname', pl.person_name || 'Allergy plate'));
+          row.appendChild(el('span', '', (pl.items || []).map(itemName).join(', ') || 'Check with the organiser'));
+          row.appendChild(el('span', 'gnote', (pl.special_instructions || '').replace(/^Allergy:\s*/, '')));
+          box.appendChild(row);
+        });
+      }
     } else if (ppl.length) {
       [['starter', 'STARTERS'], ['main', 'MAINS'], ['dessert', 'DESSERTS']].forEach(function (c) {
         var groups = {}, order = {};
@@ -356,10 +372,17 @@
     var acts = el('div', 'actions');
     function act(label, cls, fn) { var x = el('button', 'btn btn-small ' + cls, label); x.type = 'button'; x.addEventListener('click', fn); acts.appendChild(x); }
     var st = b.status || 'pending';
-    if (st !== 'confirmed') act('Mark confirmed', 'ok', function () { setStatus(b, 'confirmed'); });
+    if (st !== 'confirmed') act('Mark confirmed', 'ok', function () {
+      var q = b.email ? 'Confirm this booking and email ' + b.email + '?' : 'Confirm this booking? (There’s no email address, so nobody will be emailed.)';
+      if (confirm(q)) setStatus(b, 'confirmed');
+    });
     if (st !== 'pending') act('Mark pending', '', function () { setStatus(b, 'pending'); });
     if (st !== 'cancelled') act('Cancelled', 'cancel', function () { if (confirm('Mark this booking as cancelled?')) setStatus(b, 'cancelled'); });
     act('Print', '', function () { printBooking(b); });
+    act('Delete', 'delete', function () {
+      var who = ((b.first_name || '') + ' ' + (b.last_name || '')).trim() || 'this booking';
+      if (confirm('Delete the booking for ' + who + ' on ' + dayLabel(bDate(b)).replace(/^(Today|Tomorrow) · /, '') + '? This can’t be undone.')) deleteBooking(b);
+    });
     box.appendChild(acts);
     return box;
   }
@@ -372,10 +395,35 @@
     setTimeout(function () { c.classList.remove('printing'); }, 500);
   }
 
+  var toastTimer = null;
+  function toast(msg, warn) {
+    var t = $('toast'); t.textContent = msg; t.className = 'toast' + (warn ? ' warn' : ''); t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, warn ? 9000 : 5000);
+  }
+
   function setStatus(b, status) {
     api('/admin/bookings/' + b.id + '/status', { method: 'PUT', body: { status: status } })
-      .then(function () { b.status = status; render(); })
+      .then(function (data) {
+        b.status = status; render();
+        if (status !== 'confirmed') return;
+        var es = data.emailStatus;
+        if (es === 'sent') toast('Confirmed. Email sent to ' + (b.email || 'the customer') + '.');
+        else if (es === 'already') toast('Confirmed. (This customer was already sent a confirmation email.)');
+        else if (es === 'no-email') toast('Confirmed, but there’s no email address on this booking, so please let them know.', true);
+        else if (es === 'not-configured') toast('Confirmed, but emails aren’t switched on yet, so the customer wasn’t emailed.', true);
+        else if (es === 'failed') toast('Confirmed, but the email didn’t send. Please contact the customer.', true);
+        else toast('Confirmed.');
+      })
       .catch(function (e) { if (e.message !== 'signed-out') alert('Couldn’t update the booking: ' + e.message); });
+  }
+
+  function deleteBooking(b) {
+    api('/admin/bookings/' + b.id, { method: 'DELETE' })
+      .then(function () {
+        bookings = bookings.filter(function (x) { return x.id !== b.id; });
+        openId = null; render(); toast('Booking deleted.');
+      })
+      .catch(function (e) { if (e.message !== 'signed-out') alert('Couldn’t delete the booking: ' + e.message); });
   }
 
   // ---------- loading ----------

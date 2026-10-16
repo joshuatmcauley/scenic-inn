@@ -281,18 +281,44 @@ var PREORDER_MENUS = ['christmas', 'evening', 'tea', 'sunday', 'lunch'];
 
 // ---------------------------------------------------------------------
 // BUFFET (for events and large parties)
-// The old booking site loaded this from the live database, so it isn't in
-// the repo yet. Add the sections and items here, e.g.
-//   section('Hot food', null, [ item('Chicken goujons', 'With dips'), ... ])
-// maxChoices: how many different items a group can pick.
+// maxChoices: how many dishes a group can pick from the buffet (null = no limit).
 // pricePerHead: number in pounds, or null to leave the price off.
+// Each dish needs a different name, because the name is what the kitchen sees.
+// Vegan and vegetarian options to be added later.
 // ---------------------------------------------------------------------
 var BUFFET = {
   label: 'Buffet',
   note: '',
   maxChoices: 4,
   pricePerHead: null,
-  sections: [] // [ADD THE BUFFET MENU HERE]
+  // Made separately for anyone with an allergy, as their own plate.
+  // These don't count towards the buffet choices.
+  allergyItems: [
+    item('Gluten free goujons'),
+    item('Gluten free chicken wings', 'No sauce'),
+    item('Gluten free chicken bites')
+  ],
+  sections: [
+    section('Buffet menu', null, [
+      item('Chicken wings'),
+      item('Vegetable spring rolls'),
+      item('Chips'),
+      item('Skinny fries'),
+      item('Cocktail sausages'),
+      item('Chicken goujons'),
+      item('Salad'),
+      item('Salt and chilli chicken'),
+      item('Chicken bites')
+    ]),
+    section('Sandwiches', null, [
+      item('Cheese and tomato sandwiches'),
+      item('Sweet chilli chicken sandwiches'),
+      item('Tuna and mayo sandwiches'),
+      item('Egg and onion sandwiches'),
+      item('Ham and cheese sandwiches'),
+      item('Salad sandwiches')
+    ])
+  ]
 };
 
 var EVENT_TYPES = ['Birthday', 'Christening', 'Communion or confirmation', 'Engagement', 'Anniversary', 'Funeral or wake', 'Work night out', 'Christmas party', 'Other'];
