@@ -217,7 +217,7 @@ function applyMode() {
   $('po-intro').textContent = ev
     ? 'Birthdays, christenings, wakes and celebrations. Tell us about your event, choose a buffet, and we’ll look after the rest.'
     : 'Booking for ' + PARTY_MIN + ' or more? Choose a buffet, or have everyone pick their own meal ahead of time so the food comes out together. Your progress saves on this device, so you can collect choices over a few days.';
-  document.querySelectorAll('[data-nav]').forEach(function (a) { if (a.getAttribute('data-nav') === state.type) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  document.querySelectorAll('[data-nav]').forEach(function (a) { if ((a.getAttribute('data-nav') || '').split(' ').indexOf(state.type) !== -1) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   $('style-block').hidden = ev;
   $('menu-block').hidden = isBuffet() || !state.style;
   $('style-block').querySelector('h2').classList.add('spaced');
