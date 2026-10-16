@@ -46,8 +46,8 @@ var MENUS = {
     showAllergens: true,
     sides: ['Chips', 'Garlic chips', 'Chilli and sour cream chips', 'Skinny fries', 'Salt n chilli chips', 'Mash', 'Champ', 'House salad', 'Rocket and balsamic salad', 'Lemon rice'],
     photos: [
-      { src: 'prawns-toast.jpg', alt: 'King prawns in a garlic cream on toasted ciabatta' },
-      { src: 'garlic-bread.jpg', alt: 'Bacon and cheddar garlic bread with rocket and aioli' }
+      { src: 'steak.jpg', alt: 'Steak with chips, a roast tomato, crispy onions and pepper sauce' },
+      { src: 'prawns-tempura.jpg', alt: 'Crispy battered prawns with lemon and two dips' }
     ],
     sections: [
       section('Sandwiches, wraps and toasties', 'main', [
@@ -90,8 +90,8 @@ var MENUS = {
     minCourses: 2,
     days: [1, 2, 3, 4], times: ['17:00', '20:00'],
     photos: [
-      { src: 'garlic-bread.jpg', alt: 'Bacon and cheddar garlic bread with rocket and aioli' },
-      { src: 'pork-belly.jpg', alt: 'Korean BBQ pork belly bites with sesame and pickled veg' }
+      { src: 'salmon-peas.jpg', alt: 'Seared salmon with crispy potatoes, broccoli, sugar snap peas and a chive cream' },
+      { src: 'pork-belly-bites.jpg', alt: 'Korean BBQ pork belly bites with sesame and pickled veg' }
     ],
     sides: ['Triple cooked chips', 'Skinny fries', 'Chilli and sour cream fries', 'Salt and chilli fries', 'Garlic fries',
       'Mash', 'Champ', 'Seasonal veg', 'Lemon rice', 'House salad', 'Rocket and balsamic salad'],
@@ -136,9 +136,9 @@ var MENUS = {
     showAllergens: true,
     days: [5, 6, 0], times: ['17:00', '20:30'],
     photos: [
-      { src: 'pork-belly.jpg', alt: 'Korean BBQ pork belly bites with sesame and pickled veg' },
-      { src: 'goats-cheese.jpg', alt: 'Whipped goats cheese with granola and a trio of beetroot' },
-      { src: 'prawns-toast.jpg', alt: 'Piri piri king prawns in cream on toasted ciabatta' }
+      { src: 'steak.jpg', alt: 'Steak with chips, a roast tomato, crispy onions and pepper sauce' },
+      { src: 'pork-belly-plate.jpg', alt: 'Crispy pork belly with mashed potato, roast cabbage, broccoli and gravy' },
+      { src: 'pork-belly-bites.jpg', alt: 'Korean BBQ pork belly bites with sesame and pickled veg' }
     ],
     sides: SIDES_EVENING,
     sections: [
@@ -210,7 +210,10 @@ var MENUS = {
     setPrice: { 1: 18.95, 2: 22.95, 3: 26.95 },
     minCourses: 1,
     days: [0], times: ['12:00', '16:30'],
-    photos: [{ src: 'diningroom.jpg', alt: 'The restaurant dining room set for lunch' }],
+    photos: [
+      { src: 'braised-beef.jpg', alt: 'Braised beef with chive mash, savoy cabbage and a rich gravy' },
+      { src: 'salmon-lemon.jpg', alt: 'Pan-fried salmon with crispy potatoes, broccoli, sugar snap peas and a chive cream' }
+    ],
     sections: [
       section('Starters', 'starter', [
         item('Vegetable broth', 'With Guinness wheaten and salted butter', null, 'G D S'),
