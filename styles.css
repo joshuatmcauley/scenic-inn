@@ -261,6 +261,15 @@ p { margin: 0; }
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px 48px; }
 
+.showcase { padding-top: 104px; }
+.showcase-head { max-width: 40em; margin-bottom: 44px; }
+.showcase-head .prose { margin-top: 16px; }
+.showcase-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.showcase-grid figure { margin: 0; }
+.showcase-grid img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 220px 220px 2px 2px; }
+.showcase-grid figcaption { margin-top: 16px; font-size: 16px; line-height: 1.45; color: var(--muted); }
+.showcase-grid figcaption strong { color: var(--bark); font-weight: 600; }
+.showcase-link { margin-top: 32px; font-weight: 600; }
 .gallery { padding-top: 104px; }
 .gallery-head { display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: baseline; justify-content: space-between; margin-bottom: 40px; }
 .gallery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -500,3 +509,10 @@ html.is-loading { overflow: hidden; }
 .dish-warn { margin-top: 6px; font-size: 14px; font-weight: 600; color: var(--rust); }
 .dish-info:empty, .dish-warn:empty { display: none; }
 #courses .course { margin-top: 24px; }
+
+@media (max-width: 700px) {
+  .showcase { padding-top: 72px; }
+  .showcase-head { margin-bottom: 28px; }
+  .showcase-grid { grid-template-columns: 1fr; gap: 36px; }
+  .showcase-grid img { border-radius: 160px 160px 2px 2px; }
+}
