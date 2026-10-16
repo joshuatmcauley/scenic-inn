@@ -9,6 +9,17 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<style>
+  .choose { max-width: 880px; margin-left: auto; margin-right: auto; }
+  .choose .lede { margin-top: 24px; max-width: 36em; color: var(--muted); }
+  .choices { margin-top: 44px; display: grid; gap: 20px; }
+  .choice { padding: 28px 28px 30px; border: 1px solid var(--line); border-radius: 2px; background: var(--paper-3); }
+  .choice.main { border-color: var(--bark); }
+  .choice h2 { font-family: var(--sans); font-size: 24px; font-weight: 600; line-height: 1.3; margin: 0 0 8px; }
+  .choice p { margin: 0 0 20px; max-width: 34em; color: var(--muted); }
+  .choice .btn-row { display: flex; flex-wrap: wrap; gap: 12px; }
+  .small-note { margin-top: 36px; font-size: 15px; color: var(--muted); }
+</style>
 </head>
 <body>
 <script src="loader.js"></script>
@@ -26,107 +37,39 @@
   </div>
 </header>
 
-<main class="wrap page book">
-  <aside>
-    <h1 class="page-title">Book a table</h1>
-    <div class="double-rule"></div>
-    <ol class="steps" id="steps">
-      <li><span>1</span>Party and date</li>
-      <li><span>2</span>Time</li>
-      <li><span>3</span>Your details</li>
-      <li><span>4</span>Confirmed</li>
-    </ol>
-    <div class="summary">
-      <p class="label">Your booking</p>
-      <p id="sum-guests"></p>
-      <p id="sum-date"></p>
-      <p id="sum-time"></p>
-      <p class="menu" id="sum-menu"></p>
-    </div>
-    <p class="muted" style="margin-top:24px;font-size:15px">Booking for 11 or more, or an event? <a href="preorder.html?type=party">Book a large party</a> or <a href="preorder.html?type=event">book an event</a>.</p>
-    <p class="muted" style="margin-top:10px;font-size:15px">Prefer to talk to someone? Call <a href="tel:+442820751260">028 2075 1260</a></p>
-  </aside>
+<main class="wrap page choose">
+  <h1 class="page-title">Book a table</h1>
+  <div class="double-rule"></div>
+  <p class="lede">Pick the kind of booking that suits you.</p>
 
-  <section class="book-main" aria-live="polite">
-
-    <!-- Step 1 -->
-    <div data-step="1">
-      <h2>Who’s coming?</h2>
-      <div class="counters">
-        <div class="counter">
-          <div><p class="title">Adults</p><p class="sub">16 and over</p></div>
-          <div class="ctrl">
-            <button type="button" class="round" data-change="adults:-1" aria-label="One fewer adult">−</button>
-            <output id="adults">2</output>
-            <button type="button" class="round" data-change="adults:1" aria-label="One more adult">+</button>
-          </div>
-        </div>
-        <div class="counter">
-          <div><p class="title">Children</p><p class="sub">Ages 2 to 15</p></div>
-          <div class="ctrl">
-            <button type="button" class="round" data-change="children:-1" aria-label="One fewer child">−</button>
-            <output id="children">0</output>
-            <button type="button" class="round" data-change="children:1" aria-label="One more child">+</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="notice dark" id="large-notice" hidden>
-        <p class="title">Booking for 11 or more</p>
-        <p>Large groups choose their food before arriving, so the kitchen can have everything ready together. After your details, you can choose a buffet or have everyone pick their meal.</p>
-      </div>
-
-      <h2 class="spaced">Which day?</h2>
-      <div class="dates" id="dates"></div>
-      <div class="actions"><button type="button" class="btn btn-primary" data-go="2">Choose a time</button></div>
-    </div>
-
-    <!-- Step 2 -->
-    <div data-step="2" hidden>
-      <h2 style="margin-bottom:8px">What time?</h2>
-      <p class="muted" id="day-label" style="margin-bottom:28px"></p>
-      <div id="slot-groups"></div>
-      <div class="actions">
-        <button type="button" class="btn btn-outline" data-go="1">Back</button>
-        <button type="button" class="btn btn-primary" data-go="3">Add your details</button>
-        <span class="error" id="time-error" hidden>Pick a time to continue.</span>
-      </div>
-    </div>
-
-    <!-- Step 3 -->
-    <form data-step="3" id="details" hidden novalidate>
-      <h2>Your details</h2>
-      <div class="fields">
-        <label class="field">First name<input type="text" name="firstName" autocomplete="given-name" required></label>
-        <label class="field">Last name<input type="text" name="lastName" autocomplete="family-name" required></label>
-        <label class="field">Email<input type="email" name="email" autocomplete="email" required></label>
-        <label class="field">Phone<input type="tel" name="phone" autocomplete="tel" required></label>
-      </div>
-      <label class="field field-full">Anything we should know? <span class="hint">Birthdays, high chairs, allergies, wheelchair access</span><textarea name="requests" rows="4"></textarea></label>
-      <label class="check"><input type="checkbox" name="marketing">Send me news about events and offers</label>
-      <div class="actions">
-        <button type="button" class="btn btn-outline" data-go="2">Back</button>
-        <button type="submit" class="btn btn-primary">Confirm booking</button>
-        <span class="error" id="details-error" hidden>Fill in your name, email and phone to continue.</span>
-      </div>
-    </form>
-
-    <!-- Step 4 -->
-    <div data-step="4" class="confirmed dark" hidden>
-      <img src="mark.png" alt="">
-      <h2>Booking received</h2>
-      <p id="confirm-line"></p>
-      <p>We'll email your confirmation shortly. If your plans change, call us on 028 2075 1260.</p>
+  <div class="choices">
+    <section class="choice main">
+      <h2>A table for up to 10 people</h2>
+      <p>Choose your date, time and party size on our booking page. You’ll get a confirmation straight to your inbox.</p>
       <div class="btn-row">
-        <a href="menus.html" class="btn btn-light">See the menus</a>
-        <button type="button" class="btn btn-outline" id="restart">Make another booking</button>
+        <a class="btn btn-primary" href="https://web.dojo.app/create_booking/vendor/LAZqrqg-ti7bReeyErQrHqPDRx3bxvy0H7pcxZOQuFY_restaurant" target="_blank" rel="noopener">Book a table</a>
       </div>
-    </div>
+    </section>
 
-  </section>
+    <section class="choice">
+      <h2>A large party of 11 or more</h2>
+      <p>Large groups choose their food before arriving, so the kitchen can have everything ready together. Choose a buffet, or have everyone pick their own meal.</p>
+      <div class="btn-row">
+        <a class="btn btn-outline" href="preorder.html?type=party">Book a large party</a>
+      </div>
+    </section>
+
+    <section class="choice">
+      <h2>An event</h2>
+      <p>Birthdays, christenings and get-togethers. Tell us the date and numbers and choose the food.</p>
+      <div class="btn-row">
+        <a class="btn btn-outline" href="preorder.html?type=event">Book for an event</a>
+      </div>
+    </section>
+  </div>
+
+  <p class="small-note">Prefer to talk to someone? Call <a href="tel:+442820751260">028 2075 1260</a>.</p>
 </main>
 
-<script src="config.js"></script>
-<script src="book.js"></script>
 </body>
 </html>
